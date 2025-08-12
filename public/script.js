@@ -100,18 +100,17 @@ function createMessageElement(messageData) {
     const messageContent = document.createElement('div');
     messageContent.classList.add('chat-message-content');
 
-    const senderSpan = document.createElement('span');
-    senderSpan.classList.add('chat-message-sender');
-    senderSpan.textContent = `${messageData.senderName}: `;
-    messageContent.appendChild(senderSpan);
+    // Die Absender-Info und der Text werden in einem Block zusammengefasst
+    const senderText = document.createElement('span');
+    senderText.innerHTML = `<span class="chat-message-sender">${messageData.senderName}:</span> ${messageData.text}`;
+    messageContent.appendChild(senderText);
 
-    messageContent.appendChild(document.createTextNode(messageData.text));
     messageElement.appendChild(messageContent);
 
     if (isOwner || messageData.senderId === mySocketId) {
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '❌';
-        deleteButton.classList.add('btn', 'btn-action');
+        deleteButton.classList.add('btn-action'); // Nur diese Klasse verwenden
         deleteButton.title = 'Nachricht löschen';
         deleteButton.addEventListener('click', () => {
             socket.emit('delete message', { roomName: currentRoom, messageId: messageData.id });
