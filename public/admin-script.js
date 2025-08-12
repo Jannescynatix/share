@@ -113,7 +113,7 @@ function displayRoomDetails(room) {
     roomDetails.appendChild(header);
 
     const info = document.createElement('p');
-    info.innerHTML = `**Passwort:** ${room.password}`;
+    info.innerHTML = `<b>Passwort:</b> ${room.password}`;
     roomDetails.appendChild(info);
 
     const panels = document.createElement('div');
@@ -137,7 +137,7 @@ function displayRoomDetails(room) {
     chatMessages.classList.add('chat-messages');
     room.chatMessages.forEach(msg => {
         const messageItem = document.createElement('li');
-        messageItem.innerHTML = `**${msg.senderName}:** ${msg.text}`;
+        messageItem.innerHTML = `<b>${msg.senderName}:</b> ${msg.text}`;
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '❌';
@@ -160,10 +160,14 @@ function displayRoomDetails(room) {
     room.users.forEach(user => {
         const userItem = document.createElement('li');
         userItem.innerHTML = `
-            **Name:** ${user.name} ${user.id === room.owner ? '(Ersteller)' : ''}<br>
-            **IP:** ${user.ip}<br>
-            **Gerät:** ${user.device || 'Unbekannt'}<br>
-            **Browser:** ${user.browser || 'Unbekannt'}
+            <div>
+                <b>Name:</b> ${user.name} ${user.id === room.owner ? '(Ersteller)' : ''}
+                <div class="user-details">
+                    IP: ${user.ip || 'Unbekannt'}<br>
+                    Gerät: ${user.device || 'Unbekannt'}<br>
+                    Browser: ${user.browser || 'Unbekannt'}
+                </div>
+            </div>
         `;
 
         const userActions = document.createElement('div');
