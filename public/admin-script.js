@@ -2,7 +2,11 @@
 
 const socket = io();
 
+const adminLoginPage = document.getElementById('admin-login-page');
 const adminDashboard = document.getElementById('admin-dashboard');
+const adminPasswordInput = document.getElementById('admin-password-input');
+const adminLoginButton = document.getElementById('admin-login-button');
+const adminErrorMessage = document.getElementById('admin-error-message');
 const roomTabsContainer = document.getElementById('room-tabs');
 const roomDetailsContainer = document.getElementById('room-details-container');
 const noRoomSelectedMessage = document.getElementById('no-room-selected-message');
@@ -14,18 +18,19 @@ const avgSessionDurationStat = document.getElementById('avg-session-duration-sta
 
 let currentActiveRoom = null;
 
-// Neu: Beim Laden der Seite die Admin-Sitzung prüfen
-window.addEventListener('load', () => {
-    socket.emit('admin:check-session');
+adminLoginButton.addEventListener('click', () => {
+    const password = adminPasswordInput.value;
+    socket.emit('admin:login', password);
 });
 
 socket.on('admin:authenticated', (data) => {
+    adminLoginPage.style.display = 'none';
     adminDashboard.style.display = 'flex';
     updateDashboard(data);
 });
 
 socket.on('admin:auth-failed', () => {
-    window.location.href = '/admin';
+    adminErrorMessage.textContent = 'Falsches Admin-Passwort.';
 });
 
 socket.on('admin:update-rooms', (data) => {
@@ -114,6 +119,7 @@ function displayRoomDetails(room) {
     const panels = document.createElement('div');
     panels.classList.add('room-details-panels');
 
+    // Text-Panel
     const textPanel = document.createElement('div');
     textPanel.classList.add('details-panel');
     textPanel.innerHTML = '<h3>Editor-Text</h3>';
@@ -123,6 +129,7 @@ function displayRoomDetails(room) {
     textPanel.appendChild(editorText);
     panels.appendChild(textPanel);
 
+    // Chat-Panel
     const chatPanel = document.createElement('div');
     chatPanel.classList.add('details-panel');
     chatPanel.innerHTML = '<h3>Chat</h3>';
@@ -134,7 +141,7 @@ function displayRoomDetails(room) {
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '❌';
-        deleteBtn.classList.add('btn', 'btn-action');
+        deleteBtn.classList.add('btn-action');
         deleteBtn.addEventListener('click', () => {
             socket.emit('admin:delete-message', { roomName: room.roomName, messageId: msg.id });
         });
@@ -144,6 +151,7 @@ function displayRoomDetails(room) {
     chatPanel.appendChild(chatMessages);
     panels.appendChild(chatPanel);
 
+    // Nutzer-Panel
     const usersPanel = document.createElement('div');
     usersPanel.classList.add('details-panel');
     usersPanel.innerHTML = '<h3>Nutzer</h3>';
