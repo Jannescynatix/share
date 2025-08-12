@@ -3,20 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Text Editor</title>
+    <title>Live-Editor-Räume</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="login-container">
-    <h1>Passwort eingeben</h1>
-    <input type="password" id="password-input" placeholder="Passwort">
-    <button id="login-button">Einloggen</button>
+<div id="login-page">
+    <h1>Willkommen zum Live-Editor</h1>
+    <p>Bitte gib den Namen des Raums und das Passwort ein.</p>
+    <div class="input-group">
+        <input type="text" id="room-input" placeholder="Raumname" required>
+        <input type="password" id="password-input" placeholder="Passwort" required>
+    </div>
+    <button id="join-button">Beitreten oder Erstellen</button>
     <p id="error-message"></p>
 </div>
 
-<div id="editor-container" style="display:none;">
-    <textarea id="text-editor"></textarea>
-    <button id="download-button">Text herunterladen</button>
+<div id="editor-page" style="display:none;">
+    <div class="header">
+        <h1 id="room-title"></h1>
+        <button id="download-button">Text herunterladen</button>
+    </div>
+
+    <div class="main-content">
+        <div class="editor-panel">
+            <textarea id="text-editor"></textarea>
+        </div>
+
+        <div class="chat-panel">
+            <h3>Live-Chat</h3>
+            <div id="chat-messages"></div>
+            <div class="chat-input-group">
+                <input type="text" id="chat-input" placeholder="Nachricht senden..." required>
+                <button id="send-button">Senden</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

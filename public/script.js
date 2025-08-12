@@ -1,23 +1,51 @@
 // public/script.js
 
 const socket = io();
+let currentRoom = '';
 
-const loginContainer = document.getElementById('login-container');
-const editorContainer = document.getElementById('editor-container');
+const loginPage = document.getElementById('login-page');
+const editorPage = document.getElementById('editor-page');
+const roomInput = document.getElementById('room-input');
 const passwordInput = document.getElementById('password-input');
-const loginButton = document.getElementById('login-button');
+const joinButton = document.getElementById('join-button');
 const errorMessage = document.getElementById('error-message');
+const roomTitle = document.getElementById('room-title');
 const textEditor = document.getElementById('text-editor');
 const downloadButton = document.getElementById('download-button');
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const sendButton = document.getElementById('send-button');
 
-loginButton.addEventListener('click', () => {
-    const passwordAttempt = passwordInput.value;
-    socket.emit('login attempt', passwordAttempt);
+// Funktion, um einem Raum beizutreten
+function joinRoom(roomName, password) {
+    socket.emit('join room', { roomName, password });
+    currentRoom = roomName;
+}
+
+// Prüfe die URL auf einen Raumnamen
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if (roomFromUrl) {
+    roomInput.value = roomFromUrl;
+}
+
+joinButton.addEventListener('click', () => {
+    const roomName = roomInput.value.trim();
+    const password = passwordInput.value;
+    if (roomName && password) {
+        joinRoom(roomName, password);
+    } else {
+        errorMessage.textContent = 'Raumname und Passwort dürfen nicht leer sein.';
+    }
 });
 
 socket.on('login successful', () => {
-    loginContainer.style.display = 'none';
-    editorContainer.style.display = 'block';
+    loginPage.style.display = 'none';
+    editorPage.style.display = 'flex';
+    roomTitle.textContent = `Raum: ${currentRoom}`;
+
+    // URL aktualisieren, um den Raumnamen anzuzeigen
+    window.history.pushState(null, '', `?room=${currentRoom}`);
 });
 
 socket.on('login failed', () => {
@@ -32,8 +60,7 @@ socket.on('update text', (newText) => {
 });
 
 textEditor.addEventListener('input', (event) => {
-    const newText = event.target.value;
-    socket.emit('text changed', newText);
+    socket.emit('text changed', { roomName: currentRoom, newText: event.target.value });
 });
 
 downloadButton.addEventListener('click', () => {
@@ -42,9 +69,26 @@ downloadButton.addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'live_text_editor.txt';
+    a.download = `${currentRoom}_live_text_editor.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+});
+
+// Chat-Logik
+sendButton.addEventListener('click', () => {
+    const message = chatInput.value.trim();
+    if (message) {
+        socket.emit('chat message', { roomName: currentRoom, message });
+        chatInput.value = '';
+    }
+});
+
+socket.on('chat message', (message) => {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message');
+    messageElement.textContent = message;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-Scroll
 });

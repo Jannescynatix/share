@@ -9,38 +9,46 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Speicher für den Text und das Passwort
-let sharedText = '';
-const password = process.env.PASSWORD; // Das Passwort wird aus der Umgebungsvariable gelesen
+// Speicher für die Räume (Jeder Raum hat seinen eigenen Text und sein eigenes Passwort)
+const rooms = {};
 
-// Wenn kein Passwort in der Umgebungsvariable gesetzt ist, wird der Server beendet
-if (!password) {
-    console.error('FEHLER: Kein Passwort in den Umgebungsvariablen gefunden. Bitte setze die Umgebungsvariable "PASSWORD".');
-    process.exit(1);
-}
-
+// Statische Dateien aus dem 'public' Ordner bereitstellen
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
     console.log('Ein Benutzer hat sich verbunden');
 
-    // Sende den aktuellen Text an den neu verbundenen Benutzer
-    socket.emit('update text', sharedText);
+    // Benutzer tritt einem Raum bei
+    socket.on('join room', ({ roomName, password }) => {
+        if (!rooms[roomName]) {
+            // Wenn der Raum nicht existiert, wird er erstellt und das Passwort gesetzt
+            rooms[roomName] = { text: '', password };
+            console.log(`Neuer Raum '${roomName}' erstellt.`);
+        }
 
-    // Höre auf Passwort-Versuche
-    socket.on('login attempt', (attempt) => {
-        if (attempt === password) {
+        if (rooms[roomName].password === password) {
+            socket.join(roomName);
             socket.emit('login successful');
+            socket.emit('update text', rooms[roomName].text);
+            console.log(`Benutzer ist Raum '${roomName}' beigetreten.`);
         } else {
             socket.emit('login failed');
         }
     });
 
-    // Höre auf Änderungen im Text
-    socket.on('text changed', (newText) => {
-        sharedText = newText;
-        // Sende die Änderung an alle anderen verbundenen Clients
-        socket.broadcast.emit('update text', sharedText);
+    // Höre auf Text-Änderungen in einem bestimmten Raum
+    socket.on('text changed', ({ roomName, newText }) => {
+        if (rooms[roomName]) {
+            rooms[roomName].text = newText;
+            io.to(roomName).emit('update text', newText);
+        }
+    });
+
+    // Höre auf Chat-Nachrichten in einem bestimmten Raum
+    socket.on('chat message', ({ roomName, message }) => {
+        if (rooms[roomName]) {
+            io.to(roomName).emit('chat message', message);
+        }
     });
 
     socket.on('disconnect', () => {
