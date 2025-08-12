@@ -31,10 +31,8 @@ io.use(sharedsession(sessionMiddleware, {
 const rooms = {};
 const sessionStarts = {};
 
-// WICHTIG: Das Admin-Passwort muss gehasht und NICHT im Klartext gespeichert werden.
-// Führen Sie diesen Befehl einmalig aus, um einen Hash zu generieren:
-// bcrypt.hash('ihrSicheresAdminPasswort', 10, (err, hash) => console.log(hash));
-// Kopieren Sie den generierten Hash hierher oder in eine Umgebungsvariable.
+// WICHTIG: Das Admin-Passwort wird jetzt direkt aus den Umgebungsvariablen gelesen.
+// Der Hash im Code ist nur ein Fallback. Sie müssen den Hash in Render setzen.
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '$2b$10$oY75i7z6c6O3M7P6Q7R8O.G/N2Z.J1j.j6A.j1j.j6A.';
 
 // Admin-Seite bedienen
