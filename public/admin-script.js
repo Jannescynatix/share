@@ -141,7 +141,7 @@ function displayRoomDetails(room) {
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '❌';
-        deleteBtn.classList.add('btn', 'btn-action');
+        deleteBtn.classList.add('btn-action');
         deleteBtn.addEventListener('click', () => {
             socket.emit('admin:delete-message', { roomName: room.roomName, messageId: msg.id });
         });
