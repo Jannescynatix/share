@@ -11,6 +11,11 @@ const roomTabsContainer = document.getElementById('room-tabs');
 const roomDetailsContainer = document.getElementById('room-details-container');
 const noRoomSelectedMessage = document.getElementById('no-room-selected-message');
 
+const activeRoomsStat = document.getElementById('active-rooms-stat');
+const activeUsersStat = document.getElementById('active-users-stat');
+const mostPopularRoomStat = document.getElementById('most-popular-room-stat');
+const avgSessionDurationStat = document.getElementById('avg-session-duration-stat');
+
 let currentActiveRoom = null;
 
 adminLoginButton.addEventListener('click', () => {
@@ -18,30 +23,42 @@ adminLoginButton.addEventListener('click', () => {
     socket.emit('admin:login', password);
 });
 
-socket.on('admin:authenticated', (rooms) => {
+socket.on('admin:authenticated', (data) => {
     adminLoginPage.style.display = 'none';
     adminDashboard.style.display = 'flex';
-    updateRoomList(rooms);
+    updateDashboard(data);
 });
 
 socket.on('admin:auth-failed', () => {
     adminErrorMessage.textContent = 'Falsches Admin-Passwort.';
 });
 
-socket.on('admin:update-rooms', (rooms) => {
-    updateRoomList(rooms);
+socket.on('admin:update-rooms', (data) => {
+    updateDashboard(data);
+});
+
+function updateDashboard(data) {
+    updateStats(data.stats);
+    updateRoomList(data.rooms);
+
     if (currentActiveRoom) {
-        const updatedRoom = rooms.find(room => room.roomName === currentActiveRoom);
+        const updatedRoom = data.rooms.find(room => room.roomName === currentActiveRoom);
         if (updatedRoom) {
             displayRoomDetails(updatedRoom);
         } else {
-            // Raum wurde gelöscht
             roomDetailsContainer.innerHTML = '';
             roomDetailsContainer.appendChild(noRoomSelectedMessage);
             currentActiveRoom = null;
         }
     }
-});
+}
+
+function updateStats(stats) {
+    activeRoomsStat.textContent = stats.activeRoomsCount;
+    activeUsersStat.textContent = stats.activeUsersCount;
+    mostPopularRoomStat.textContent = stats.mostPopularRoom ? `${stats.mostPopularRoom[0]} (${stats.mostPopularRoom[1]})` : 'N/A';
+    avgSessionDurationStat.textContent = `${(stats.averageSessionDuration / 60000).toFixed(2)} min`;
+}
 
 function updateRoomList(rooms) {
     roomTabsContainer.innerHTML = '';
@@ -96,7 +113,7 @@ function displayRoomDetails(room) {
     roomDetails.appendChild(header);
 
     const info = document.createElement('p');
-    info.textContent = `Passwort: ${room.password}`;
+    info.innerHTML = `**Passwort:** ${room.password}`;
     roomDetails.appendChild(info);
 
     const panels = document.createElement('div');
@@ -120,7 +137,7 @@ function displayRoomDetails(room) {
     chatMessages.classList.add('chat-messages');
     room.chatMessages.forEach(msg => {
         const messageItem = document.createElement('li');
-        messageItem.textContent = `${msg.senderName}: ${msg.text}`;
+        messageItem.innerHTML = `**${msg.senderName}:** ${msg.text}`;
 
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '❌';
@@ -142,7 +159,16 @@ function displayRoomDetails(room) {
     userList.classList.add('user-list');
     room.users.forEach(user => {
         const userItem = document.createElement('li');
-        userItem.textContent = `${user.name} (${user.id === room.owner ? 'Ersteller' : 'Nutzer'})`;
+        userItem.innerHTML = `
+            **Name:** ${user.name} ${user.id === room.owner ? '(Ersteller)' : ''}<br>
+            **IP:** ${user.ip}<br>
+            **Gerät:** ${user.device || 'Unbekannt'}<br>
+            **Browser:** ${user.browser || 'Unbekannt'}
+        `;
+
+        const userActions = document.createElement('div');
+        userActions.classList.add('user-actions');
+
         if (user.id !== room.owner) {
             const kickBtn = document.createElement('button');
             kickBtn.textContent = 'Kicken';
@@ -150,8 +176,10 @@ function displayRoomDetails(room) {
             kickBtn.addEventListener('click', () => {
                 socket.emit('admin:kick-user', { roomName: room.roomName, userId: user.id });
             });
-            userItem.appendChild(kickBtn);
+            userActions.appendChild(kickBtn);
         }
+
+        userItem.appendChild(userActions);
         userList.appendChild(userItem);
     });
     usersPanel.appendChild(userList);

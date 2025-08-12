@@ -5,12 +5,14 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const crypto = require('crypto');
+const useragent = require('user-agent');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
 const rooms = {};
+const sessionStarts = {};
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
@@ -45,14 +47,47 @@ function decrypt(text, key) {
     }
 }
 
-io.on('connection', (socket) => {
-    console.log(`Ein Benutzer hat sich verbunden: ${socket.id}`);
+function getStats() {
+    const activeRoomsCount = Object.keys(rooms).length;
+    let activeUsersCount = 0;
+    const roomNames = {};
+    const sessionDurations = [];
 
-    // Admin-spezifische Events
+    for (const roomName in rooms) {
+        activeUsersCount += rooms[roomName].users.length;
+        if (roomNames[roomName]) {
+            roomNames[roomName]++;
+        } else {
+            roomNames[roomName] = 1;
+        }
+    }
+
+    for (const roomId in sessionStarts) {
+        sessionDurations.push(Date.now() - sessionStarts[roomId]);
+    }
+
+    const avgSessionDuration = sessionDurations.length > 0
+        ? sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length
+        : 0;
+
+    return {
+        activeRoomsCount,
+        activeUsersCount,
+        mostPopularRoom: Object.entries(roomNames).sort(([, a], [, b]) => b - a)[0],
+        averageSessionDuration: avgSessionDuration
+    };
+}
+
+io.on('connection', (socket) => {
+    const userAgent = socket.handshake.headers['user-agent'];
+    const clientInfo = useragent.parse(userAgent);
+
+    sessionStarts[socket.id] = Date.now();
+
     socket.on('admin:login', (password) => {
         if (password === ADMIN_PASSWORD) {
             socket.join('admin-room');
-            socket.emit('admin:authenticated', Object.values(rooms));
+            socket.emit('admin:authenticated', { rooms: Object.values(rooms), stats: getStats() });
             console.log(`Admin ${socket.id} hat sich angemeldet.`);
         } else {
             socket.emit('admin:auth-failed');
@@ -72,7 +107,7 @@ io.on('connection', (socket) => {
                 rooms[roomName].users = rooms[roomName].users.filter(u => u.id !== userId);
                 io.to(roomName).emit('update room data', rooms[roomName]);
                 io.to(roomName).emit('chat message', { sender: 'System (Admin)', text: `${userToKick.name} wurde aus dem Raum geworfen.` });
-                io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
             }
         }
     });
@@ -83,7 +118,7 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('room deleted', 'Dieser Raum wurde vom Admin gelöscht.');
             delete rooms[roomName];
             console.log(`Raum '${roomName}' wurde vom Admin gelöscht.`);
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
@@ -93,11 +128,10 @@ io.on('connection', (socket) => {
             rooms[roomName].chatMessages = rooms[roomName].chatMessages.filter(m => m.id !== messageId);
             io.to(roomName).emit('message deleted', messageId);
             io.to(roomName).emit('chat message', { sender: 'System (Admin)', text: `Eine Nachricht wurde gelöscht.` });
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
-    // Normale Benutzer-Events
     socket.on('join room', ({ roomName, password, username }) => {
         let decryptedPassword = password;
         if (password && process.env.ENCRYPTION_KEY) {
@@ -113,13 +147,23 @@ io.on('connection', (socket) => {
             return;
         }
 
+        const userIp = socket.handshake.address;
+
+        const newUserData = {
+            id: socket.id,
+            name: username,
+            ip: userIp,
+            device: clientInfo.device.family,
+            browser: clientInfo.browser.name
+        };
+
         if (!rooms[roomName]) {
             rooms[roomName] = {
                 roomName,
                 text: '',
                 password: decryptedPassword,
                 owner: socket.id,
-                users: [{ id: socket.id, name: username }],
+                users: [newUserData],
                 bannedUsers: [],
                 chatMessages: []
             };
@@ -128,7 +172,7 @@ io.on('connection', (socket) => {
             socket.emit('login successful', { room: rooms[roomName], socketId: socket.id, username: username });
         } else if (rooms[roomName].password === decryptedPassword) {
             if (!rooms[roomName].users.find(u => u.name === username)) {
-                rooms[roomName].users.push({ id: socket.id, name: username });
+                rooms[roomName].users.push(newUserData);
             }
             socket.join(roomName);
             socket.emit('login successful', { room: rooms[roomName], socketId: socket.id, username: username });
@@ -141,14 +185,14 @@ io.on('connection', (socket) => {
         io.to(roomName).emit('update text', rooms[roomName].text);
         io.to(roomName).emit('update room data', rooms[roomName]);
         io.to(roomName).emit('load messages', rooms[roomName].chatMessages);
-        io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+        io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
     });
 
     socket.on('text changed', ({ roomName, newText }) => {
         if (rooms[roomName]) {
             rooms[roomName].text = newText;
             io.to(roomName).emit('update text', newText);
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
@@ -164,7 +208,7 @@ io.on('connection', (socket) => {
                 };
                 rooms[roomName].chatMessages.push(messageData);
                 io.to(roomName).emit('new message', messageData);
-                io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
             }
         }
     });
@@ -179,7 +223,7 @@ io.on('connection', (socket) => {
                     rooms[roomName].chatMessages.splice(messageIndex, 1);
                     io.to(roomName).emit('message deleted', messageId);
                     io.to(roomName).emit('chat message', { sender: 'System', text: `Eine Nachricht wurde gelöscht.` });
-                    io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                    io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
                 }
             }
         }
@@ -190,7 +234,7 @@ io.on('connection', (socket) => {
             rooms[roomName].password = newPassword;
             io.to(roomName).emit('chat message', { sender: 'System', text: `Das Passwort wurde zu "${newPassword}" geändert.` });
             io.to(roomName).emit('update room data', rooms[roomName]);
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
@@ -206,7 +250,7 @@ io.on('connection', (socket) => {
                 rooms[roomName].users = rooms[roomName].users.filter(u => u.id !== userId);
                 io.to(roomName).emit('update room data', rooms[roomName]);
                 io.to(roomName).emit('chat message', { sender: 'System', text: `${userToKick.name} wurde aus dem Raum geworfen.` });
-                io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
             }
         }
     });
@@ -224,7 +268,7 @@ io.on('connection', (socket) => {
                 rooms[roomName].users = rooms[roomName].users.filter(u => u.id !== userId);
                 io.to(roomName).emit('update room data', rooms[roomName]);
                 io.to(roomName).emit('chat message', { sender: 'System', text: `${userToBan.name} wurde dauerhaft gebannt.` });
-                io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
             }
         }
     });
@@ -234,7 +278,7 @@ io.on('connection', (socket) => {
             rooms[roomName].bannedUsers = rooms[roomName].bannedUsers.filter(name => name !== username);
             io.to(roomName).emit('update room data', rooms[roomName]);
             io.to(roomName).emit('chat message', { sender: 'System', text: `Benutzer "${username}" wurde entbannt.` });
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
@@ -243,7 +287,7 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('room deleted', 'Dieser Raum wurde vom Ersteller gelöscht.');
             delete rooms[roomName];
             console.log(`Raum '${roomName}' wurde gelöscht.`);
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
@@ -253,22 +297,23 @@ io.on('connection', (socket) => {
             socket.leave(roomName);
             io.to(roomName).emit('update room data', rooms[roomName]);
             io.to(roomName).emit('chat message', { sender: 'System', text: `Jemand hat den Raum verlassen.` });
-            io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
         }
     });
 
     socket.on('disconnect', () => {
         console.log(`Ein Benutzer hat die Verbindung getrennt: ${socket.id}`);
+        delete sessionStarts[socket.id];
         for (const roomName in rooms) {
             const initialUserCount = rooms[roomName].users.length;
             rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== socket.id);
             if (rooms[roomName].users.length < initialUserCount) {
                 io.to(roomName).emit('update room data', rooms[roomName]);
-                io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
                 if (rooms[roomName].users.length === 0) {
                     delete rooms[roomName];
                     console.log(`Raum '${roomName}' wurde gelöscht, da keine Benutzer mehr da sind.`);
-                    io.to('admin-room').emit('admin:update-rooms', Object.values(rooms));
+                    io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
                 }
             }
         }
