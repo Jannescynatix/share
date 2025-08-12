@@ -1,0 +1,59 @@
+/* public/style.css */
+
+body {
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f2f5;
+    margin: 0;
+}
+
+#login-container, #editor-container {
+    padding: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+#password-input, #login-button, #text-editor, #download-button {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.8rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+#password-input {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#login-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#text-editor {
+    height: 50vh;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#download-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#error-message {
+    color: red;
+    margin-top: 1rem;
+}

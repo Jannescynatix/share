@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Text Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="login-container">
+    <h1>Passwort eingeben</h1>
+    <input type="password" id="password-input" placeholder="Passwort">
+    <button id="login-button">Einloggen</button>
+    <p id="error-message"></p>
+</div>
+
+<div id="editor-container" style="display:none;">
+    <textarea id="text-editor"></textarea>
+    <button id="download-button">Text herunterladen</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
