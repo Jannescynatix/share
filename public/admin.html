@@ -5,56 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin-Panel</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="admin-login-page" class="admin-container login-page-bg">
-    <div class="login-box">
-        <h1>Admin-Login</h1>
-        <p>Bitte gib das Admin-Passwort ein, um fortzufahren.</p>
-        <div class="input-group">
-            <input type="password" id="admin-password-input" placeholder="Admin-Passwort" required>
-        </div>
-        <button id="admin-login-button" class="btn btn-primary">Anmelden</button>
-        <p id="admin-error-message" class="error-message"></p>
+<div id="admin-login-page">
+    <h1>Admin-Login</h1>
+    <p>Bitte gib das Admin-Passwort ein.</p>
+    <div class="input-group">
+        <input type="password" id="admin-password-input" placeholder="Admin-Passwort" required>
     </div>
+    <button id="admin-login-button">Anmelden</button>
+    <p id="admin-error-message"></p>
 </div>
 
-<div id="admin-dashboard" class="admin-container dashboard-layout" style="display:none;">
-    <header class="dashboard-header">
+<div id="admin-dashboard" style="display:none;">
+    <header class="admin-header">
         <h1>Admin-Dashboard</h1>
-        <div class="header-stats">
-            <div class="stat-item">
-                <span>Aktive Räume</span>
-                <strong id="active-rooms-stat">0</strong>
-            </div>
-            <div class="stat-item">
-                <span>Aktive Nutzer</span>
-                <strong id="active-users-stat">0</strong>
-            </div>
-            <div class="stat-item">
-                <span>Ø Sitzungsdauer</span>
-                <strong id="avg-session-duration-stat">0 min</strong>
-            </div>
-        </div>
+        <p>Alle aktiven Räume in Echtzeit.</p>
     </header>
 
-    <main class="dashboard-main">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h3>Aktive Räume</h3>
-            </div>
-            <div id="room-list" class="room-list-container">
-            </div>
-        </aside>
-
-        <section class="content">
-            <div id="room-details-container" class="room-details-container">
-                <div id="no-room-selected-message" class="info-card">
-                    <p>Wähle einen Raum aus, um die Details anzuzeigen.</p>
+    <main class="admin-main">
+        <div id="stats-panel">
+            <h3>Statistiken</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Aktive Räume</h4>
+                    <p id="active-rooms-stat"></p>
+                </div>
+                <div class="stat-card">
+                    <h4>Aktive Nutzer</h4>
+                    <p id="active-users-stat"></p>
+                </div>
+                <div class="stat-card">
+                    <h4>Beliebtester Raum</h4>
+                    <p id="most-popular-room-stat"></p>
+                </div>
+                <div class="stat-card">
+                    <h4>Ø Sitzungsdauer</h4>
+                    <p id="avg-session-duration-stat"></p>
                 </div>
             </div>
-        </section>
+        </div>
+
+        <div id="room-list-container">
+            <div id="room-tabs" class="room-tabs"></div>
+            <div id="room-details-container">
+                <p id="no-room-selected-message">Wähle einen Raum aus, um die Details zu sehen.</p>
+            </div>
+        </div>
     </main>
 </div>
 
