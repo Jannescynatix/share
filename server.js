@@ -54,7 +54,7 @@ io.on('connection', (socket) => {
                 owner: socket.id,
                 users: [{ id: socket.id, name: username }],
                 bannedUsers: [],
-                chatMessages: [] // Neuer Speicher für Chat-Nachrichten
+                chatMessages: []
             };
             console.log(`Neuer Raum '${roomName}' erstellt von ${username}.`);
             socket.join(roomName);
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
             const user = rooms[roomName].users.find(u => u.id === socket.id);
             if (user) {
                 const messageData = {
-                    id: Date.now(), // Eindeutige ID für jede Nachricht
+                    id: Date.now(),
                     senderId: socket.id,
                     senderName: user.name,
                     text: message
@@ -105,7 +105,6 @@ io.on('connection', (socket) => {
             if (messageIndex > -1) {
                 const messageToDelete = rooms[roomName].chatMessages[messageIndex];
 
-                // Nur Ersteller oder Sender dürfen löschen
                 if (rooms[roomName].owner === socket.id || messageToDelete.senderId === socket.id) {
                     rooms[roomName].chatMessages.splice(messageIndex, 1);
                     io.to(roomName).emit('message deleted', messageId);

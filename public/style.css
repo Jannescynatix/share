@@ -149,7 +149,6 @@ body {
 .app-panel {
     display: flex;
     flex-direction: column;
-    height: 100%;
 }
 
 .editor-panel {
@@ -175,15 +174,21 @@ body {
     border-left: 1px solid var(--border-color);
 }
 
-.chat-panel, .users-panel {
+.chat-panel {
     flex: 1;
     display: flex;
     flex-direction: column;
     padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    max-height: 50%;
 }
 
-.chat-panel {
-    border-bottom: 1px solid var(--border-color);
+.users-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    max-height: 50%;
 }
 
 .panel-header {
@@ -230,7 +235,7 @@ body {
     margin-right: 0.5rem;
 }
 
-.user-list-container, .banned-user-list-container {
+.list-container {
     overflow-y: auto;
     flex-grow: 1;
     padding-right: 0.5rem;
@@ -272,42 +277,8 @@ body {
     margin-left: 0.2rem;
 }
 
-.mobile-nav-top {
-    display: none;
-    flex-shrink: 0;
-}
-
-.nav-btn-top {
-    width: 33.33%;
-    background-color: var(--card-background);
-    border: none;
-    border-bottom: 2px solid transparent;
-    padding: 1rem 0;
-    cursor: pointer;
-    font-size: 1rem;
-    color: var(--secondary-color);
-    transition: all 0.2s ease;
-}
-
-.nav-btn-top.active {
-    color: var(--primary-color);
-    border-bottom: 2px solid var(--primary-color);
-}
-
-.nav-btn-top:not(.active):hover {
-    background-color: #f1f1f1;
-}
-
 /* Mobile-Ansicht */
 @media (max-width: 768px) {
-    body {
-        overflow: hidden;
-    }
-
-    #main-app {
-        height: 100vh;
-    }
-
     .app-header {
         padding: 1rem;
         flex-wrap: wrap;
@@ -328,46 +299,51 @@ body {
 
     .app-main {
         flex-direction: column;
+        overflow-y: auto;
+        padding-bottom: 1rem;
     }
 
     .sidebar {
-        display: none;
-    }
-
-    .editor-panel, .chat-panel, .users-panel {
-        flex: 1;
-        width: 100vw;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease-in-out;
-        box-shadow: none;
-    }
-
-    .app-panel.active {
+        flex: none;
         display: flex;
-        transform: translateX(0);
-        z-index: 2;
-    }
-
-    .editor-panel.active {
+        flex-direction: column;
+        border-left: none;
         border-right: none;
     }
 
-    .mobile-nav-top {
-        display: flex;
+    .app-panel {
+        width: 100%;
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+    }
+
+    .editor-panel {
+        flex: none;
+        min-height: 50vh;
+        border-right: none;
+    }
+
+    .chat-panel {
+        flex: none;
+        max-height: none;
+        border-bottom: none;
+    }
+
+    .users-panel {
+        flex: none;
+        max-height: none;
     }
 
     .chat-messages {
-        height: 60vh;
+        height: 200px;
         flex-grow: 0;
     }
 
-    .user-list-container, .banned-user-list-container {
-        height: 30vh;
+    .list-container {
+        height: 150px;
         flex-grow: 0;
     }
 }

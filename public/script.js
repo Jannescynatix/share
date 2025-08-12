@@ -28,31 +28,6 @@ const userList = document.getElementById('user-list');
 const bannedUserList = document.getElementById('banned-user-list');
 const bannedUsersHeader = document.getElementById('banned-users-header');
 
-const mobileNavButtons = document.querySelectorAll('.mobile-nav-top .nav-btn-top');
-const panels = {
-    'editor-panel': document.getElementById('editor-panel'),
-    'chat-panel': document.getElementById('chat-panel'),
-    'users-panel': document.getElementById('users-panel')
-};
-
-function activatePanel(panelId) {
-    for (const id in panels) {
-        panels[id].classList.remove('active');
-    }
-    if (panels[panelId]) {
-        panels[panelId].classList.add('active');
-    }
-}
-
-mobileNavButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const targetId = button.dataset.target;
-        mobileNavButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-        activatePanel(targetId);
-    });
-});
-
 function joinRoom(roomName, password, username) {
     socket.emit('join room', { roomName, password, username });
     currentRoom = roomName;
@@ -133,7 +108,6 @@ function createMessageElement(messageData) {
     messageContent.appendChild(document.createTextNode(messageData.text));
     messageElement.appendChild(messageContent);
 
-    // Löschen-Button nur für eigene Nachrichten oder für den Ersteller
     if (isOwner || messageData.senderId === mySocketId) {
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '❌';
