@@ -27,20 +27,23 @@ const sendButton = document.getElementById('send-button');
 const userList = document.getElementById('user-list');
 const bannedUserList = document.getElementById('banned-user-list');
 const bannedUsersHeader = document.getElementById('banned-users-header');
-const mobileNavButtons = document.querySelectorAll('.mobile-nav .nav-btn');
-const editorPanel = document.getElementById('editor-panel');
-const chatPanel = document.getElementById('chat-panel');
-const usersPanel = document.getElementById('users-panel');
 
-// Funktion, um die aktiven Panels zu steuern
+const mobileNavButtons = document.querySelectorAll('.mobile-nav-top .nav-btn-top');
+const panels = {
+    'editor-panel': document.getElementById('editor-panel'),
+    'chat-panel': document.getElementById('chat-panel'),
+    'users-panel': document.getElementById('users-panel')
+};
+
 function activatePanel(panelId) {
-    [editorPanel, chatPanel, usersPanel].forEach(panel => {
-        panel.classList.remove('active');
-    });
-    document.getElementById(panelId).classList.add('active');
+    for (const id in panels) {
+        panels[id].classList.remove('active');
+    }
+    if (panels[panelId]) {
+        panels[panelId].classList.add('active');
+    }
 }
 
-// Mobile-Navigation
 mobileNavButtons.forEach(button => {
     button.addEventListener('click', () => {
         const targetId = button.dataset.target;
@@ -50,7 +53,6 @@ mobileNavButtons.forEach(button => {
     });
 });
 
-// Funktion, um einem Raum beizutreten
 function joinRoom(roomName, password, username) {
     socket.emit('join room', { roomName, password, username });
     currentRoom = roomName;
@@ -115,6 +117,36 @@ textEditor.addEventListener('input', (event) => {
 });
 
 // Chat-Logik
+function createMessageElement(messageData) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('chat-message');
+    messageElement.dataset.messageId = messageData.id;
+
+    const messageContent = document.createElement('div');
+    messageContent.classList.add('chat-message-content');
+
+    const senderSpan = document.createElement('span');
+    senderSpan.classList.add('chat-message-sender');
+    senderSpan.textContent = `${messageData.senderName}: `;
+    messageContent.appendChild(senderSpan);
+
+    messageContent.appendChild(document.createTextNode(messageData.text));
+    messageElement.appendChild(messageContent);
+
+    // Löschen-Button nur für eigene Nachrichten oder für den Ersteller
+    if (isOwner || messageData.senderId === mySocketId) {
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '❌';
+        deleteButton.classList.add('btn', 'btn-action');
+        deleteButton.title = 'Nachricht löschen';
+        deleteButton.addEventListener('click', () => {
+            socket.emit('delete message', { roomName: currentRoom, messageId: messageData.id });
+        });
+        messageElement.appendChild(deleteButton);
+    }
+    return messageElement;
+}
+
 sendButton.addEventListener('click', () => {
     const message = chatInput.value.trim();
     if (message) {
@@ -129,16 +161,24 @@ chatInput.addEventListener('keypress', (event) => {
     }
 });
 
-socket.on('chat message', (data) => {
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('chat-message');
-    const senderSpan = document.createElement('span');
-    senderSpan.classList.add('sender');
-    senderSpan.textContent = `${data.sender}: `;
-    messageElement.appendChild(senderSpan);
-    messageElement.appendChild(document.createTextNode(data.text));
-    chatMessages.appendChild(messageElement);
+socket.on('load messages', (messages) => {
+    chatMessages.innerHTML = '';
+    messages.forEach(msg => {
+        chatMessages.appendChild(createMessageElement(msg));
+    });
     chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+socket.on('new message', (messageData) => {
+    chatMessages.appendChild(createMessageElement(messageData));
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+socket.on('message deleted', (messageId) => {
+    const messageElement = document.querySelector(`.chat-message[data-message-id="${messageId}"]`);
+    if (messageElement) {
+        messageElement.remove();
+    }
 });
 
 // Nutzerliste-Logik
@@ -147,7 +187,6 @@ socket.on('update room data', (roomData) => {
     bannedUserList.innerHTML = '';
     roomPasswordDisplay.textContent = `Passwort: ${roomData.password}`;
 
-    // Aktuelle Nutzer
     roomData.users.forEach(user => {
         const userItem = document.createElement('li');
         userItem.classList.add('user-item');
@@ -189,7 +228,6 @@ socket.on('update room data', (roomData) => {
         userList.appendChild(userItem);
     });
 
-    // Gebannte Nutzer (nur für den Ersteller sichtbar)
     if (isOwner && roomData.bannedUsers && roomData.bannedUsers.length > 0) {
         bannedUsersHeader.style.display = 'block';
         roomData.bannedUsers.forEach(bannedName => {

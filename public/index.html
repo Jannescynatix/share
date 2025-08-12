@@ -37,13 +37,19 @@
     </header>
 
     <main class="app-main">
-        <div id="editor-panel" class="editor-panel">
+        <div class="mobile-nav-top">
+            <button class="nav-btn-top active" data-target="editor-panel">✍️ Editor</button>
+            <button class="nav-btn-top" data-target="chat-panel">💬 Chat</button>
+            <button class="nav-btn-top" data-target="users-panel">👥 Nutzer</button>
+        </div>
+
+        <div id="editor-panel" class="app-panel editor-panel active">
             <textarea id="text-editor" placeholder="Beginne hier zu schreiben..."></textarea>
         </div>
 
         <div class="sidebar">
-            <div id="chat-panel" class="chat-panel">
-                <div class="mobile-header">Live-Chat</div>
+            <div id="chat-panel" class="app-panel chat-panel">
+                <div class="panel-header">Live-Chat</div>
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" placeholder="Nachricht senden...">
@@ -51,20 +57,18 @@
                 </div>
             </div>
 
-            <div id="users-panel" class="users-panel">
-                <div class="mobile-header">Nutzer im Raum</div>
-                <ul id="user-list" class="user-list"></ul>
+            <div id="users-panel" class="app-panel users-panel">
+                <div class="panel-header">Nutzer im Raum</div>
+                <div class="user-list-container">
+                    <ul id="user-list" class="user-list"></ul>
+                </div>
                 <h4 id="banned-users-header" style="display:none;">Gebannte Nutzer</h4>
-                <ul id="banned-user-list" class="user-list"></ul>
+                <div class="banned-user-list-container">
+                    <ul id="banned-user-list" class="user-list"></ul>
+                </div>
             </div>
         </div>
     </main>
-
-    <div class="mobile-nav">
-        <button class="nav-btn active" data-target="editor-panel">✍️ Editor</button>
-        <button class="nav-btn" data-target="chat-panel">💬 Chat</button>
-        <button class="nav-btn" data-target="users-panel">👥 Nutzer</button>
-    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

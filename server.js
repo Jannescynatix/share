@@ -10,7 +10,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Speicher für die Räume. Jeder Raum hat seinen eigenen Text, Passwort, Nutzerliste, Ban-Liste und Ersteller.
 const rooms = {};
 
 // Statische Dateien aus dem 'public' Ordner bereitstellen
@@ -18,32 +17,31 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Entschlüsselungsfunktion
 function decrypt(text, key) {
-    if (!text || !key) {
+    if (!text || !key) return null;
+    try {
+        const decipher = crypto.createDecipher('aes-256-cbc', key);
+        let dec = decipher.update(text, 'hex', 'utf8');
+        dec += decipher.final('utf8');
+        return dec;
+    } catch (e) {
+        console.error("Fehler beim Entschlüsseln des Passworts:", e);
         return null;
     }
-    const decipher = crypto.createDecipher('aes-256-cbc', key);
-    let dec = decipher.update(text, 'hex', 'utf8');
-    dec += decipher.final('utf8');
-    return dec;
 }
 
 io.on('connection', (socket) => {
     console.log(`Ein Benutzer hat sich verbunden: ${socket.id}`);
 
     socket.on('join room', ({ roomName, password, username }) => {
-        // Entschlüssele das Passwort
         let decryptedPassword = password;
         if (password && process.env.ENCRYPTION_KEY) {
-            try {
-                decryptedPassword = decrypt(password, process.env.ENCRYPTION_KEY);
-            } catch (e) {
-                console.error("Fehler beim Entschlüsseln des Passworts:", e);
+            decryptedPassword = decrypt(password, process.env.ENCRYPTION_KEY);
+            if (!decryptedPassword) {
                 socket.emit('login failed', 'Fehler beim Passwort.');
                 return;
             }
         }
 
-        // Prüfe, ob der Benutzername gebannt ist
         if (rooms[roomName] && rooms[roomName].bannedUsers && rooms[roomName].bannedUsers.includes(username)) {
             socket.emit('login failed', 'Du wurdest dauerhaft aus diesem Raum gebannt.');
             return;
@@ -55,13 +53,13 @@ io.on('connection', (socket) => {
                 password: decryptedPassword,
                 owner: socket.id,
                 users: [{ id: socket.id, name: username }],
-                bannedUsers: []
+                bannedUsers: [],
+                chatMessages: [] // Neuer Speicher für Chat-Nachrichten
             };
             console.log(`Neuer Raum '${roomName}' erstellt von ${username}.`);
             socket.join(roomName);
             socket.emit('login successful', { room: rooms[roomName], socketId: socket.id, username: username });
         } else if (rooms[roomName].password === decryptedPassword) {
-            // Prüfe, ob der Benutzer bereits im Raum ist (vermeide Duplikate)
             if (!rooms[roomName].users.find(u => u.name === username)) {
                 rooms[roomName].users.push({ id: socket.id, name: username });
             }
@@ -75,6 +73,7 @@ io.on('connection', (socket) => {
 
         io.to(roomName).emit('update text', rooms[roomName].text);
         io.to(roomName).emit('update room data', rooms[roomName]);
+        io.to(roomName).emit('load messages', rooms[roomName].chatMessages);
     });
 
     socket.on('text changed', ({ roomName, newText }) => {
@@ -88,7 +87,30 @@ io.on('connection', (socket) => {
         if (rooms[roomName]) {
             const user = rooms[roomName].users.find(u => u.id === socket.id);
             if (user) {
-                io.to(roomName).emit('chat message', { sender: user.name, text: message });
+                const messageData = {
+                    id: Date.now(), // Eindeutige ID für jede Nachricht
+                    senderId: socket.id,
+                    senderName: user.name,
+                    text: message
+                };
+                rooms[roomName].chatMessages.push(messageData);
+                io.to(roomName).emit('new message', messageData);
+            }
+        }
+    });
+
+    socket.on('delete message', ({ roomName, messageId }) => {
+        if (rooms[roomName]) {
+            const messageIndex = rooms[roomName].chatMessages.findIndex(m => m.id === messageId);
+            if (messageIndex > -1) {
+                const messageToDelete = rooms[roomName].chatMessages[messageIndex];
+
+                // Nur Ersteller oder Sender dürfen löschen
+                if (rooms[roomName].owner === socket.id || messageToDelete.senderId === socket.id) {
+                    rooms[roomName].chatMessages.splice(messageIndex, 1);
+                    io.to(roomName).emit('message deleted', messageId);
+                    io.to(roomName).emit('chat message', { sender: 'System', text: `Eine Nachricht wurde gelöscht.` });
+                }
             }
         }
     });
@@ -121,7 +143,7 @@ io.on('connection', (socket) => {
         if (rooms[roomName] && rooms[roomName].owner === socket.id) {
             const userToBan = rooms[roomName].users.find(u => u.id === userId);
             if (userToBan && userToBan.id !== rooms[roomName].owner) {
-                rooms[roomName].bannedUsers.push(userToBan.name); // Banne den Namen des Nutzers
+                rooms[roomName].bannedUsers.push(userToBan.name);
                 const clientSocket = io.sockets.sockets.get(userId);
                 if (clientSocket) {
                     clientSocket.leave(roomName);
@@ -155,7 +177,7 @@ io.on('connection', (socket) => {
             rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== socket.id);
             socket.leave(roomName);
             io.to(roomName).emit('update room data', rooms[roomName]);
-            io.to(roomName).emit('chat message', { sender: 'System', text: `${socket.id} hat den Raum verlassen.` });
+            io.to(roomName).emit('chat message', { sender: 'System', text: `Jemand hat den Raum verlassen.` });
         }
     });
 
