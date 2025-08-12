@@ -25,7 +25,7 @@ body {
 }
 
 /* Login Seite */
-#login-page {
+#login-page, #admin-login-page {
     text-align: center;
     background: var(--card-background);
     padding: 3rem;
@@ -44,7 +44,7 @@ body {
     font-size: 1rem;
 }
 
-#join-button {
+#join-button, #admin-login-button {
     width: 100%;
     padding: 0.8rem;
     background-color: var(--primary-color);
@@ -56,24 +56,24 @@ body {
     transition: background-color 0.2s ease;
 }
 
-#join-button:hover {
+#join-button:hover, #admin-login-button:hover {
     background-color: #0056b3;
 }
 
-#error-message {
+#error-message, #admin-error-message {
     color: var(--danger-color);
     margin-top: 1rem;
 }
 
 /* Haupt-App Layout */
-#main-app {
+#main-app, #admin-dashboard {
     width: 100vw;
     height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
-.app-header {
+.app-header, .admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -137,10 +137,10 @@ body {
 .btn-danger:hover { background-color: #c82333; }
 .btn-success:hover { background-color: #218838; }
 
-.app-main {
+.app-main, .admin-main {
     flex-grow: 1;
     display: flex;
-    background: var(--card-background);
+    background: var(--background-color);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
@@ -155,6 +155,7 @@ body {
     flex: 3;
     padding: 1rem;
     border-right: 1px solid var(--border-color);
+    background-color: var(--card-background);
 }
 
 #text-editor {
@@ -181,6 +182,7 @@ body {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     max-height: 50%;
+    background-color: var(--card-background);
 }
 
 .users-panel {
@@ -189,6 +191,7 @@ body {
     flex-direction: column;
     padding: 1rem;
     max-height: 50%;
+    background-color: var(--card-background);
 }
 
 .panel-header {
@@ -277,9 +280,110 @@ body {
     margin-left: 0.2rem;
 }
 
+/* Admin-Dashboard spezifische Stile */
+.admin-main {
+    flex-direction: row;
+    height: 100%;
+}
+
+#room-list-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    background-color: var(--card-background);
+}
+
+.room-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    padding: 0.5rem;
+}
+
+.room-tab {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    background-color: #f1f1f1;
+    margin-right: 5px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.room-tab.active {
+    background-color: var(--card-background);
+    border-color: var(--border-color);
+    border-bottom-color: var(--card-background);
+    position: relative;
+    top: 1px;
+}
+
+#room-details-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+#room-details {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.room-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.room-details-header h2 {
+    margin: 0;
+}
+
+.room-details-panels {
+    display: flex;
+    flex-grow: 1;
+}
+
+.details-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    margin-right: 1rem;
+    background-color: #f1f1f1;
+}
+
+.details-panel:last-child {
+    margin-right: 0;
+}
+
+.details-panel h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.details-panel .editor-text, .details-panel .chat-messages, .details-panel .user-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border-radius: 5px;
+}
+
 /* Mobile-Ansicht */
 @media (max-width: 768px) {
-    .app-header {
+    .app-header, .admin-header {
         padding: 1rem;
         flex-wrap: wrap;
     }
@@ -297,7 +401,7 @@ body {
         margin-top: 0.5rem;
     }
 
-    .app-main {
+    .app-main, .admin-main {
         flex-direction: column;
         overflow-y: auto;
         padding-bottom: 1rem;
@@ -345,5 +449,27 @@ body {
     .list-container {
         height: 150px;
         flex-grow: 0;
+    }
+
+    /* Admin Mobile-Stile */
+    .admin-main {
+        padding: 1rem;
+    }
+
+    #room-list-container {
+        border-right: none;
+    }
+
+    .room-tabs {
+        flex-wrap: nowrap;
+    }
+
+    .room-details-panels {
+        flex-direction: column;
+    }
+
+    .details-panel {
+        margin-right: 0;
+        margin-bottom: 1rem;
     }
 }

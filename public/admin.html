@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin-Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="admin-login-page">
+    <h1>Admin-Login</h1>
+    <p>Bitte gib das Admin-Passwort ein.</p>
+    <div class="input-group">
+        <input type="password" id="admin-password-input" placeholder="Admin-Passwort" required>
+    </div>
+    <button id="admin-login-button">Anmelden</button>
+    <p id="admin-error-message"></p>
+</div>
+
+<div id="admin-dashboard" style="display:none;">
+    <header class="admin-header">
+        <h1>Admin-Dashboard</h1>
+        <p>Alle aktiven Räume in Echtzeit.</p>
+    </header>
+
+    <main class="admin-main">
+        <div id="room-list-container">
+            <div id="room-tabs" class="room-tabs"></div>
+            <div id="room-details-container">
+                <p id="no-room-selected-message">Wähle einen Raum aus, um die Details zu sehen.</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="admin-script.js"></script>
+</body>
+</html>
