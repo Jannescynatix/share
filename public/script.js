@@ -79,7 +79,6 @@ socket.on('login failed', (message) => {
     errorMessage.textContent = message;
 });
 
-// Texteditor-Logik
 socket.on('update text', (newText) => {
     const cursorPosition = textEditor.selectionStart;
     textEditor.value = newText;
@@ -91,7 +90,6 @@ textEditor.addEventListener('input', (event) => {
     socket.emit('text changed', { roomName: currentRoom, newText: event.target.value });
 });
 
-// Chat-Logik
 function createMessageElement(messageData) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('chat-message');
@@ -100,7 +98,6 @@ function createMessageElement(messageData) {
     const messageContent = document.createElement('div');
     messageContent.classList.add('chat-message-content');
 
-    // Die Absender-Info und der Text werden in einem Block zusammengefasst
     const senderText = document.createElement('span');
     senderText.innerHTML = `<span class="chat-message-sender">${messageData.senderName}:</span> ${messageData.text}`;
     messageContent.appendChild(senderText);
@@ -110,7 +107,7 @@ function createMessageElement(messageData) {
     if (isOwner || messageData.senderId === mySocketId) {
         const deleteButton = document.createElement('button');
         deleteButton.textContent = '❌';
-        deleteButton.classList.add('btn-action'); // Nur diese Klasse verwenden
+        deleteButton.classList.add('btn-action');
         deleteButton.title = 'Nachricht löschen';
         deleteButton.addEventListener('click', () => {
             socket.emit('delete message', { roomName: currentRoom, messageId: messageData.id });
@@ -154,7 +151,6 @@ socket.on('message deleted', (messageId) => {
     }
 });
 
-// Nutzerliste-Logik
 socket.on('update room data', (roomData) => {
     userList.innerHTML = '';
     bannedUserList.innerHTML = '';
@@ -226,7 +222,6 @@ socket.on('update room data', (roomData) => {
     }
 });
 
-// Button-Funktionen
 downloadButton.addEventListener('click', () => {
     const text = textEditor.value;
     const blob = new Blob([text], { type: 'text/plain' });

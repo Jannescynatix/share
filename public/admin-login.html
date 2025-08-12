@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin-Login</title>
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+<div id="admin-login-page">
+    <h1>Admin-Login</h1>
+    <p>Bitte gib das Admin-Passwort ein.</p>
+    <div class="input-group">
+        <input type="password" id="admin-password-input" placeholder="Admin-Passwort" required>
+    </div>
+    <button id="admin-login-button">Anmelden</button>
+    <p id="admin-error-message"></p>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const adminPasswordInput = document.getElementById('admin-password-input');
+    const adminLoginButton = document.getElementById('admin-login-button');
+    const adminErrorMessage = document.getElementById('admin-error-message');
+
+    adminLoginButton.addEventListener('click', async () => {
+        const password = adminPasswordInput.value;
+        const response = await fetch('/admin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+
+        if (response.ok) {
+            window.location.href = '/admin';
+        } else {
+            adminErrorMessage.textContent = 'Falsches Admin-Passwort.';
+        }
+    });
+</script>
+</body>
+</html>
