@@ -7,13 +7,12 @@ const adminDashboard = document.getElementById('admin-dashboard');
 const adminPasswordInput = document.getElementById('admin-password-input');
 const adminLoginButton = document.getElementById('admin-login-button');
 const adminErrorMessage = document.getElementById('admin-error-message');
-const roomTabsContainer = document.getElementById('room-tabs');
+const roomListContainer = document.getElementById('room-list');
 const roomDetailsContainer = document.getElementById('room-details-container');
 const noRoomSelectedMessage = document.getElementById('no-room-selected-message');
 
 const activeRoomsStat = document.getElementById('active-rooms-stat');
 const activeUsersStat = document.getElementById('active-users-stat');
-const mostPopularRoomStat = document.getElementById('most-popular-room-stat');
 const avgSessionDurationStat = document.getElementById('avg-session-duration-stat');
 
 let currentActiveRoom = null;
@@ -56,31 +55,31 @@ function updateDashboard(data) {
 function updateStats(stats) {
     activeRoomsStat.textContent = stats.activeRoomsCount;
     activeUsersStat.textContent = stats.activeUsersCount;
-    mostPopularRoomStat.textContent = stats.mostPopularRoom ? `${stats.mostPopularRoom[0]} (${stats.mostPopularRoom[1]})` : 'N/A';
     avgSessionDurationStat.textContent = `${(stats.averageSessionDuration / 60000).toFixed(2)} min`;
 }
 
 function updateRoomList(rooms) {
-    roomTabsContainer.innerHTML = '';
+    roomListContainer.innerHTML = '';
     if (rooms.length === 0) {
-        const noRooms = document.createElement('p');
-        noRooms.textContent = 'Aktuell sind keine Räume verfügbar.';
-        roomTabsContainer.appendChild(noRooms);
+        const noRooms = document.createElement('div');
+        noRooms.classList.add('info-card');
+        noRooms.innerHTML = '<p>Aktuell sind keine Räume verfügbar.</p>';
+        roomListContainer.appendChild(noRooms);
     } else {
         rooms.forEach(room => {
-            const tab = document.createElement('button');
-            tab.textContent = room.roomName;
-            tab.classList.add('room-tab');
+            const button = document.createElement('button');
+            button.textContent = room.roomName;
+            button.classList.add('room-item');
             if (room.roomName === currentActiveRoom) {
-                tab.classList.add('active');
+                button.classList.add('active');
             }
-            tab.addEventListener('click', () => {
+            button.addEventListener('click', () => {
                 currentActiveRoom = room.roomName;
-                document.querySelectorAll('.room-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
+                document.querySelectorAll('.room-item').forEach(t => t.classList.remove('active'));
+                button.classList.add('active');
                 displayRoomDetails(room);
             });
-            roomTabsContainer.appendChild(tab);
+            roomListContainer.appendChild(button);
         });
     }
 }
@@ -88,107 +87,73 @@ function updateRoomList(rooms) {
 function displayRoomDetails(room) {
     roomDetailsContainer.innerHTML = '';
 
-    const roomDetails = document.createElement('div');
-    roomDetails.id = 'room-details';
+    const detailsHtml = `
+        <div class="details-header">
+            <h2>Raum: ${room.roomName}</h2>
+            <button class="btn btn-danger btn-small" onclick="deleteRoom('${room.roomName}')">Raum löschen</button>
+        </div>
 
-    const header = document.createElement('div');
-    header.classList.add('room-details-header');
-
-    const title = document.createElement('h2');
-    title.textContent = `Raum: ${room.roomName}`;
-    header.appendChild(title);
-
-    const controls = document.createElement('div');
-
-    const deleteButton = document.createElement('button');
-    deleteButton.textContent = 'Raum löschen';
-    deleteButton.classList.add('btn', 'btn-danger');
-    deleteButton.addEventListener('click', () => {
-        if (confirm(`Möchtest du den Raum "${room.roomName}" wirklich löschen?`)) {
-            socket.emit('admin:delete-room', room.roomName);
-        }
-    });
-    controls.appendChild(deleteButton);
-    header.appendChild(controls);
-    roomDetails.appendChild(header);
-
-    const info = document.createElement('p');
-    info.innerHTML = `<b>Passwort:</b> ${room.password}`;
-    roomDetails.appendChild(info);
-
-    const panels = document.createElement('div');
-    panels.classList.add('room-details-panels');
-
-    // Text-Panel
-    const textPanel = document.createElement('div');
-    textPanel.classList.add('details-panel');
-    textPanel.innerHTML = '<h3>Editor-Text</h3>';
-    const editorText = document.createElement('div');
-    editorText.classList.add('editor-text');
-    editorText.textContent = room.text;
-    textPanel.appendChild(editorText);
-    panels.appendChild(textPanel);
-
-    // Chat-Panel
-    const chatPanel = document.createElement('div');
-    chatPanel.classList.add('details-panel');
-    chatPanel.innerHTML = '<h3>Chat</h3>';
-    const chatMessages = document.createElement('ul');
-    chatMessages.classList.add('chat-messages');
-    room.chatMessages.forEach(msg => {
-        const messageItem = document.createElement('li');
-        messageItem.innerHTML = `<b>${msg.senderName}:</b> ${msg.text}`;
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = '❌';
-        deleteBtn.classList.add('btn', 'btn-action');
-        deleteBtn.addEventListener('click', () => {
-            socket.emit('admin:delete-message', { roomName: room.roomName, messageId: msg.id });
-        });
-        messageItem.appendChild(deleteBtn);
-        chatMessages.appendChild(messageItem);
-    });
-    chatPanel.appendChild(chatMessages);
-    panels.appendChild(chatPanel);
-
-    // Nutzer-Panel
-    const usersPanel = document.createElement('div');
-    usersPanel.classList.add('details-panel');
-    usersPanel.innerHTML = '<h3>Nutzer</h3>';
-    const userList = document.createElement('ul');
-    userList.classList.add('user-list');
-    room.users.forEach(user => {
-        const userItem = document.createElement('li');
-        userItem.innerHTML = `
-            <div>
-                <b>Name:</b> ${user.name} ${user.id === room.owner ? '(Ersteller)' : ''}
-                <div class="user-details">
-                    IP: ${user.ip || 'Unbekannt'}<br>
-                    Gerät: ${user.device || 'Unbekannt'}<br>
-                    Browser: ${user.browser || 'Unbekannt'}
+        <div class="details-grid">
+            <div class="detail-card">
+                <h3>Nutzer (${room.users.length})</h3>
+                <div class="detail-card-content">
+                    <ul class="user-list">
+                        ${room.users.map(user => `
+                            <li class="user-item">
+                                <div class="user-info">
+                                    <b>${user.name} ${user.id === room.owner ? '(Ersteller)' : ''}</b>
+                                    <div class="user-details">
+                                        IP: ${user.ip || 'Unbekannt'}<br>
+                                        Gerät: ${user.device || 'Unbekannt'}<br>
+                                        Browser: ${user.browser || 'Unbekannt'}
+                                    </div>
+                                </div>
+                                <div class="user-actions">
+                                    ${user.id !== room.owner ? `<button class="btn btn-danger btn-small" onclick="kickUser('${room.roomName}', '${user.id}')">Kicken</button>` : ''}
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
                 </div>
             </div>
-        `;
 
-        const userActions = document.createElement('div');
-        userActions.classList.add('user-actions');
+            <div class="detail-card">
+                <h3>Editor-Text</h3>
+                <div class="detail-card-content">
+                    <pre class="editor-preview">${room.text}</pre>
+                </div>
+            </div>
 
-        if (user.id !== room.owner) {
-            const kickBtn = document.createElement('button');
-            kickBtn.textContent = 'Kicken';
-            kickBtn.classList.add('btn', 'btn-danger', 'btn-small');
-            kickBtn.addEventListener('click', () => {
-                socket.emit('admin:kick-user', { roomName: room.roomName, userId: user.id });
-            });
-            userActions.appendChild(kickBtn);
-        }
+            <div class="detail-card">
+                <h3>Chat (${room.chatMessages.length})</h3>
+                <div class="detail-card-content">
+                    <ul class="chat-messages">
+                        ${room.chatMessages.map(msg => `
+                            <li class="chat-message-item">
+                                <div class="chat-message-text"><b>${msg.senderName}:</b> ${msg.text}</div>
+                                <button class="btn btn-action" onclick="deleteMessage('${room.roomName}', ${msg.id})">❌</button>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
 
-        userItem.appendChild(userActions);
-        userList.appendChild(userItem);
-    });
-    usersPanel.appendChild(userList);
-    panels.appendChild(usersPanel);
-
-    roomDetails.appendChild(panels);
-    roomDetailsContainer.appendChild(roomDetails);
+    roomDetailsContainer.innerHTML = detailsHtml;
 }
+
+// Global verfügbare Funktionen für die onclick-Events
+window.deleteRoom = (roomName) => {
+    if (confirm(`Möchtest du den Raum "${roomName}" wirklich löschen?`)) {
+        socket.emit('admin:delete-room', roomName);
+    }
+};
+
+window.deleteMessage = (roomName, messageId) => {
+    socket.emit('admin:delete-message', { roomName, messageId });
+};
+
+window.kickUser = (roomName, userId) => {
+    socket.emit('admin:kick-user', { roomName, userId });
+};
