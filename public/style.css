@@ -84,6 +84,7 @@ body {
 .header-left {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 #room-title {
@@ -96,6 +97,7 @@ body {
     margin-left: 1rem;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .password-display {
@@ -104,6 +106,7 @@ body {
     padding: 0.2rem 0.5rem;
     border-radius: 5px;
     font-weight: bold;
+    margin-right: 0.5rem;
 }
 
 .btn {
@@ -121,25 +124,10 @@ body {
     padding: 0.3rem 0.6rem;
 }
 
-.btn-primary {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.btn-secondary {
-    background-color: var(--secondary-color);
-    color: white;
-}
-
-.btn-danger {
-    background-color: var(--danger-color);
-    color: white;
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    color: white;
-}
+.btn-primary { background-color: var(--primary-color); color: white; }
+.btn-secondary { background-color: var(--secondary-color); color: white; }
+.btn-danger { background-color: var(--danger-color); color: white; }
+.btn-success { background-color: var(--success-color); color: white; }
 
 .btn-primary:hover { background-color: #0056b3; }
 .btn-secondary:hover { background-color: #5a6268; }
@@ -153,10 +141,12 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.editor-section {
+.editor-panel {
     flex: 3;
     padding: 1rem;
     border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
 }
 
 #text-editor {
@@ -169,149 +159,89 @@ body {
     font-family: monospace;
 }
 
-/* Sidebar für Desktop */
 .sidebar {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-color);
+}
+
+.chat-panel, .users-panel {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     padding: 1rem;
 }
 
-.chat-panel, .users-panel {
-    margin-bottom: 1rem;
-}
-
-.chat-panel h3, .users-panel h3 {
-    margin-top: 0;
+.chat-panel {
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.5rem;
 }
 
 .chat-messages {
     flex-grow: 1;
-    height: 300px;
     overflow-y: auto;
     margin-bottom: 1rem;
     padding-right: 0.5rem;
 }
 
-.chat-message {
-    margin-bottom: 0.5rem;
-}
+.chat-message { margin-bottom: 0.5rem; }
+.chat-message .sender { font-weight: bold; color: var(--primary-color); }
 
-.chat-message .sender {
-    font-weight: bold;
-    color: var(--primary-color);
-}
+.chat-input-container { display: flex; }
+#chat-input { flex-grow: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 5px; margin-right: 0.5rem; }
 
-.chat-input-container {
-    display: flex;
-}
+.user-list { list-style: none; padding: 0; margin: 0; }
+.user-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #f1f1f1; }
+.user-item:last-child { border-bottom: none; }
+.user-item .owner-tag { background-color: gold; padding: 0.2rem 0.5rem; border-radius: 5px; margin-left: 0.5rem; font-size: 0.8em; font-weight: bold; }
+.user-item.banned-user .user-name { color: var(--danger-color); text-decoration: line-through; }
+.user-actions button { margin-left: 0.2rem; }
 
-#chat-input {
-    flex-grow: 1;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    margin-right: 0.5rem;
-}
-
-.user-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.user-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
-    border-bottom: 1px solid #f1f1f1;
-}
-
-.user-item:last-child {
-    border-bottom: none;
-}
-
-.user-item.banned-user .user-name {
-    color: var(--danger-color);
-    text-decoration: line-through;
-}
-
-/* Mobile-Ansicht: Tabs */
-.content-tabs {
-    display: none; /* Standardmäßig ausgeblendet auf Desktops */
-    justify-content: center;
-    background-color: var(--card-background);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.tab-button {
-    flex: 1;
-    padding: 1rem;
-    border: none;
-    background-color: transparent;
-    cursor: pointer;
-    font-size: 1rem;
-    color: var(--secondary-color);
-    border-bottom: 2px solid transparent;
-}
-
-.tab-button.active {
-    color: var(--primary-color);
-    border-bottom: 2px solid var(--primary-color);
-}
-
-.content-panels {
-    flex-grow: 1;
-}
-
-.tab-panel {
-    height: 100%;
+/* Mobile-Ansicht: Tabs und Panels */
+.mobile-nav {
     display: none;
-    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    background-color: var(--card-background);
+    border-top: 1px solid var(--border-color);
+    padding: 0.5rem 0;
 }
 
-.tab-panel.active {
-    display: flex;
+.nav-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--secondary-color);
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+.nav-btn.active { color: var(--primary-color); }
+
+.mobile-header {
+    display: none;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-bottom: 1px solid var(--border-color);
 }
 
 /* Media Queries für responsive Darstellung */
 @media (max-width: 768px) {
-    .app-main {
-        flex-direction: column;
-    }
+    .app-header { padding: 1rem; flex-wrap: wrap; }
+    .header-right { margin-top: 1rem; }
+    #room-title { font-size: 1.2rem; }
+    .password-container { margin-left: 0; margin-top: 0.5rem; }
 
-    .editor-section, .sidebar {
-        flex: 1;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-    }
+    .app-main { flex-direction: column; }
 
-    .editor-section {
-        height: 100%;
-    }
+    .editor-panel, .sidebar { border-right: none; border-left: none; padding: 0; flex: none; }
+    .sidebar { flex-grow: 1; display: none; } /* Sidebar standardmäßig versteckt */
 
-    .content-tabs {
-        display: flex; /* Tabs werden auf Mobilgeräten angezeigt */
-    }
+    .mobile-nav { display: flex; }
+    .mobile-header { display: block; }
 
-    .content-panels {
-        display: flex;
-        flex-direction: column;
-        overflow-y: auto;
-    }
-
-    #editor-panel, #chat-panel, #users-panel {
-        padding: 1rem;
-    }
-
-    .chat-messages {
-        height: 50vh;
-    }
-
-    .sidebar {
-        display: none; /* Sidebar-Layout für Desktop ausblenden */
-    }
+    .chat-panel, .users-panel { display: none; }
+    #editor-panel.active { display: flex; }
+    .chat-panel.active, .users-panel.active { display: flex; }
 }

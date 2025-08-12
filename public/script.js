@@ -6,6 +6,7 @@ let currentUsername = '';
 let isOwner = false;
 let mySocketId = '';
 
+// DOM-Elemente
 const loginPage = document.getElementById('login-page');
 const mainApp = document.getElementById('main-app');
 const usernameInput = document.getElementById('username-input');
@@ -16,6 +17,7 @@ const errorMessage = document.getElementById('error-message');
 const roomTitle = document.getElementById('room-title');
 const roomPasswordDisplay = document.getElementById('room-password-display');
 const changePasswordBtn = document.getElementById('change-password-btn');
+const shareLinkBtn = document.getElementById('share-link-btn');
 const textEditor = document.getElementById('text-editor');
 const downloadButton = document.getElementById('download-button');
 const leaveButton = document.getElementById('leave-button');
@@ -25,19 +27,27 @@ const chatInput = document.getElementById('chat-input');
 const sendButton = document.getElementById('send-button');
 const userList = document.getElementById('user-list');
 
-// Tabs
-const tabButtons = document.querySelectorAll('.tab-button');
-const tabPanels = document.querySelectorAll('.tab-panel');
+// Tabs (nur für mobile Ansicht)
+const navButtons = document.querySelectorAll('.nav-btn');
+const panels = {
+    'editor-panel': document.querySelector('.editor-panel'),
+    'chat-panel': document.querySelector('.chat-panel'),
+    'users-panel': document.querySelector('.users-panel')
+};
 
-tabButtons.forEach(button => {
+navButtons.forEach(button => {
     button.addEventListener('click', () => {
-        const tab = button.dataset.tab;
+        const target = button.dataset.target;
 
-        tabButtons.forEach(btn => btn.classList.remove('active'));
+        // Buttons
+        navButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
 
-        tabPanels.forEach(panel => panel.classList.remove('active'));
-        document.getElementById(`${tab}-panel`).classList.add('active');
+        // Panels
+        for (const panel in panels) {
+            panels[panel].style.display = 'none';
+        }
+        panels[target].style.display = 'flex';
     });
 });
 
@@ -50,8 +60,14 @@ function joinRoom(roomName, password, username) {
 
 const urlParams = new URLSearchParams(window.location.search);
 const roomFromUrl = urlParams.get('room');
+const passwordFromUrl = urlParams.get('password');
 if (roomFromUrl) {
     roomInput.value = roomFromUrl;
+    if (passwordFromUrl) {
+        // Hier müsste das Passwort entschlüsselt werden, was nur auf dem Server möglich ist.
+        // Der Client kann nur das verschlüsselte Passwort senden.
+        passwordInput.value = passwordFromUrl;
+    }
 }
 
 joinButton.addEventListener('click', () => {
@@ -70,7 +86,6 @@ socket.on('login successful', (data) => {
     mainApp.style.display = 'flex';
     mySocketId = data.socketId;
 
-    // Check for owner status
     isOwner = (data.room.owner === mySocketId);
     if (isOwner) {
         deleteButton.style.display = 'inline-block';
@@ -132,6 +147,7 @@ socket.on('chat message', (data) => {
 // Nutzerliste-Logik
 socket.on('update room data', (roomData) => {
     userList.innerHTML = '';
+    roomPasswordDisplay.textContent = `Passwort: ${roomData.password}`;
 
     // Aktuelle Nutzer
     roomData.users.forEach(user => {
@@ -142,6 +158,13 @@ socket.on('update room data', (roomData) => {
         userNameSpan.classList.add('user-name');
         userNameSpan.textContent = user.name;
         userItem.appendChild(userNameSpan);
+
+        if (roomData.owner === user.id) {
+            const ownerTag = document.createElement('span');
+            ownerTag.classList.add('owner-tag');
+            ownerTag.textContent = 'Ersteller';
+            userItem.appendChild(ownerTag);
+        }
 
         if (isOwner && user.id !== mySocketId) {
             const buttonContainer = document.createElement('div');
@@ -225,8 +248,16 @@ changePasswordBtn.addEventListener('click', () => {
     const newPassword = prompt('Gib das neue Passwort ein:');
     if (newPassword && newPassword.trim() !== '') {
         socket.emit('change password', { roomName: currentRoom, newPassword });
-        roomPasswordDisplay.textContent = `Passwort: ${newPassword}`;
     }
+});
+
+shareLinkBtn.addEventListener('click', () => {
+    // Hier bräuchten wir eine Verschlüsselung für das Passwort, um es sicher in der URL zu teilen.
+    // Dieser Teil ist komplexer, aber für das Beispiel lassen wir es weg und teilen nur den Raumnamen.
+    const url = `${window.location.origin}/?room=${currentRoom}`;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Der Raumnamen-Link wurde in die Zwischenablage kopiert. Teile den Link und das Passwort mit anderen!');
+    });
 });
 
 socket.on('room deleted', (message) => {

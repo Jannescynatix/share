@@ -4,6 +4,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,10 +16,30 @@ const rooms = {};
 // Statische Dateien aus dem 'public' Ordner bereitstellen
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Entschlüsselungsfunktion
+function decrypt(text, key) {
+    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    let dec = decipher.update(text, 'hex', 'utf8');
+    dec += decipher.final('utf8');
+    return dec;
+}
+
 io.on('connection', (socket) => {
     console.log(`Ein Benutzer hat sich verbunden: ${socket.id}`);
 
     socket.on('join room', ({ roomName, password, username }) => {
+        // Entschlüssele das Passwort, das aus der URL kommen könnte
+        let decryptedPassword = password;
+        if (password && process.env.ENCRYPTION_KEY) {
+            try {
+                decryptedPassword = decrypt(password, process.env.ENCRYPTION_KEY);
+            } catch (e) {
+                console.error("Fehler beim Entschlüsseln des Passworts:", e);
+                socket.emit('login failed', 'Fehler beim Passwort.');
+                return;
+            }
+        }
+
         if (rooms[roomName] && rooms[roomName].bannedUsers && rooms[roomName].bannedUsers.includes(socket.id)) {
             socket.emit('login failed', 'Du wurdest dauerhaft aus diesem Raum gebannt.');
             return;
@@ -27,7 +48,7 @@ io.on('connection', (socket) => {
         if (!rooms[roomName]) {
             rooms[roomName] = {
                 text: '',
-                password: password,
+                password: decryptedPassword,
                 owner: socket.id,
                 users: [{ id: socket.id, name: username }],
                 bannedUsers: []
@@ -35,7 +56,7 @@ io.on('connection', (socket) => {
             console.log(`Neuer Raum '${roomName}' erstellt von ${username}.`);
             socket.join(roomName);
             socket.emit('login successful', { room: rooms[roomName], socketId: socket.id });
-        } else if (rooms[roomName].password === password) {
+        } else if (rooms[roomName].password === decryptedPassword) {
             rooms[roomName].users.push({ id: socket.id, name: username });
             socket.join(roomName);
             socket.emit('login successful', { room: rooms[roomName], socketId: socket.id });

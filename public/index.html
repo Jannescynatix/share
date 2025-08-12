@@ -26,6 +26,7 @@
             <div class="password-container">
                 <span id="room-password-display" class="password-display"></span>
                 <button id="change-password-btn" class="btn btn-secondary btn-small" style="display:none;">Passwort ändern</button>
+                <button id="share-link-btn" class="btn btn-primary btn-small">Link teilen</button>
             </div>
         </div>
         <div class="header-right">
@@ -36,19 +37,14 @@
     </header>
 
     <main class="app-main">
-        <div class="content-tabs">
-            <button class="tab-button active" data-tab="editor">Texteditor</button>
-            <button class="tab-button" data-tab="chat">Chat</button>
-            <button class="tab-button" data-tab="users">Nutzer</button>
+        <div class="editor-panel">
+            <div class="mobile-header">Texteditor</div>
+            <textarea id="text-editor" placeholder="Beginne hier zu schreiben..."></textarea>
         </div>
 
-        <div class="content-panels">
-            <div id="editor-panel" class="tab-panel active">
-                <textarea id="text-editor" placeholder="Beginne hier zu schreiben..."></textarea>
-            </div>
-
-            <div id="chat-panel" class="tab-panel">
-                <h3>Live-Chat</h3>
+        <div class="sidebar">
+            <div class="mobile-header chat-header">Live-Chat</div>
+            <div class="chat-panel">
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" placeholder="Nachricht senden...">
@@ -56,12 +52,18 @@
                 </div>
             </div>
 
-            <div id="users-panel" class="tab-panel">
-                <h3>Nutzer im Raum</h3>
+            <div class="mobile-header users-header">Nutzer im Raum</div>
+            <div class="users-panel">
                 <ul id="user-list" class="user-list"></ul>
             </div>
         </div>
     </main>
+
+    <div class="mobile-nav">
+        <button class="nav-btn active" data-target="editor-panel">✍️ Editor</button>
+        <button class="nav-btn" data-target="chat-panel">💬 Chat</button>
+        <button class="nav-btn" data-target="users-panel">👥 Nutzer</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
