@@ -4,6 +4,7 @@
     --primary-color: #007bff;
     --secondary-color: #6c757d;
     --danger-color: #dc3545;
+    --success-color: #28a745;
     --background-color: #f8f9fa;
     --card-background: #ffffff;
     --border-color: #dee2e6;
@@ -91,12 +92,17 @@ body {
     font-size: 1.5rem;
 }
 
+.password-container {
+    margin-left: 1rem;
+    display: flex;
+    align-items: center;
+}
+
 .password-display {
     background-color: #fff3cd;
     color: #856404;
     padding: 0.2rem 0.5rem;
     border-radius: 5px;
-    margin-left: 1rem;
     font-weight: bold;
 }
 
@@ -107,6 +113,12 @@ body {
     cursor: pointer;
     font-size: 1rem;
     transition: background-color 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.btn-small {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
 }
 
 .btn-primary {
@@ -124,9 +136,15 @@ body {
     color: white;
 }
 
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
 .btn-primary:hover { background-color: #0056b3; }
 .btn-secondary:hover { background-color: #5a6268; }
 .btn-danger:hover { background-color: #c82333; }
+.btn-success:hover { background-color: #218838; }
 
 .app-main {
     flex-grow: 1;
@@ -151,6 +169,7 @@ body {
     font-family: monospace;
 }
 
+/* Sidebar für Desktop */
 .sidebar {
     flex: 1;
     display: flex;
@@ -215,6 +234,84 @@ body {
     border-bottom: none;
 }
 
-.user-item button {
-    margin-left: 0.5rem;
+.user-item.banned-user .user-name {
+    color: var(--danger-color);
+    text-decoration: line-through;
+}
+
+/* Mobile-Ansicht: Tabs */
+.content-tabs {
+    display: none; /* Standardmäßig ausgeblendet auf Desktops */
+    justify-content: center;
+    background-color: var(--card-background);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--secondary-color);
+    border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.content-panels {
+    flex-grow: 1;
+}
+
+.tab-panel {
+    height: 100%;
+    display: none;
+    flex-direction: column;
+}
+
+.tab-panel.active {
+    display: flex;
+}
+
+/* Media Queries für responsive Darstellung */
+@media (max-width: 768px) {
+    .app-main {
+        flex-direction: column;
+    }
+
+    .editor-section, .sidebar {
+        flex: 1;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .editor-section {
+        height: 100%;
+    }
+
+    .content-tabs {
+        display: flex; /* Tabs werden auf Mobilgeräten angezeigt */
+    }
+
+    .content-panels {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    #editor-panel, #chat-panel, #users-panel {
+        padding: 1rem;
+    }
+
+    .chat-messages {
+        height: 50vh;
+    }
+
+    .sidebar {
+        display: none; /* Sidebar-Layout für Desktop ausblenden */
+    }
 }

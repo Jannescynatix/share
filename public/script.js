@@ -4,8 +4,8 @@ const socket = io();
 let currentRoom = '';
 let currentUsername = '';
 let isOwner = false;
+let mySocketId = '';
 
-// DOM-Elemente
 const loginPage = document.getElementById('login-page');
 const mainApp = document.getElementById('main-app');
 const usernameInput = document.getElementById('username-input');
@@ -15,6 +15,7 @@ const joinButton = document.getElementById('join-button');
 const errorMessage = document.getElementById('error-message');
 const roomTitle = document.getElementById('room-title');
 const roomPasswordDisplay = document.getElementById('room-password-display');
+const changePasswordBtn = document.getElementById('change-password-btn');
 const textEditor = document.getElementById('text-editor');
 const downloadButton = document.getElementById('download-button');
 const leaveButton = document.getElementById('leave-button');
@@ -24,6 +25,22 @@ const chatInput = document.getElementById('chat-input');
 const sendButton = document.getElementById('send-button');
 const userList = document.getElementById('user-list');
 
+// Tabs
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const tab = button.dataset.tab;
+
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        tabPanels.forEach(panel => panel.classList.remove('active'));
+        document.getElementById(`${tab}-panel`).classList.add('active');
+    });
+});
+
 // Funktion, um einem Raum beizutreten
 function joinRoom(roomName, password, username) {
     socket.emit('join room', { roomName, password, username });
@@ -31,7 +48,6 @@ function joinRoom(roomName, password, username) {
     currentUsername = username;
 }
 
-// Prüfe die URL auf einen Raumnamen
 const urlParams = new URLSearchParams(window.location.search);
 const roomFromUrl = urlParams.get('room');
 if (roomFromUrl) {
@@ -52,19 +68,21 @@ joinButton.addEventListener('click', () => {
 socket.on('login successful', (data) => {
     loginPage.style.display = 'none';
     mainApp.style.display = 'flex';
+    mySocketId = data.socketId;
+
+    // Check for owner status
+    isOwner = (data.room.owner === mySocketId);
+    if (isOwner) {
+        deleteButton.style.display = 'inline-block';
+        changePasswordBtn.style.display = 'inline-block';
+    } else {
+        deleteButton.style.display = 'none';
+        changePasswordBtn.style.display = 'none';
+    }
+
     roomTitle.textContent = `Raum: ${currentRoom}`;
     roomPasswordDisplay.textContent = `Passwort: ${data.room.password}`;
 
-    // Prüfe, ob der aktuelle Nutzer der Raumbesitzer ist
-    if (data.room.owner === socket.id) {
-        isOwner = true;
-        deleteButton.style.display = 'inline-block';
-    } else {
-        isOwner = false;
-        deleteButton.style.display = 'none';
-    }
-
-    // URL aktualisieren, um den Raumnamen anzuzeigen
     window.history.pushState(null, '', `?room=${currentRoom}`);
 });
 
@@ -93,6 +111,12 @@ sendButton.addEventListener('click', () => {
     }
 });
 
+chatInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        sendButton.click();
+    }
+});
+
 socket.on('chat message', (data) => {
     const messageElement = document.createElement('div');
     messageElement.classList.add('chat-message');
@@ -102,28 +126,73 @@ socket.on('chat message', (data) => {
     messageElement.appendChild(senderSpan);
     messageElement.appendChild(document.createTextNode(data.text));
     chatMessages.appendChild(messageElement);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-Scroll
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 // Nutzerliste-Logik
-socket.on('update users', (users) => {
+socket.on('update room data', (roomData) => {
     userList.innerHTML = '';
-    users.forEach(user => {
+
+    // Aktuelle Nutzer
+    roomData.users.forEach(user => {
         const userItem = document.createElement('li');
         userItem.classList.add('user-item');
-        userItem.textContent = user.name;
 
-        if (isOwner && user.id !== socket.id) {
+        const userNameSpan = document.createElement('span');
+        userNameSpan.classList.add('user-name');
+        userNameSpan.textContent = user.name;
+        userItem.appendChild(userNameSpan);
+
+        if (isOwner && user.id !== mySocketId) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.classList.add('user-actions');
+
             const kickButton = document.createElement('button');
             kickButton.textContent = 'Rauswerfen';
-            kickButton.classList.add('btn', 'btn-danger');
+            kickButton.classList.add('btn', 'btn-danger', 'btn-small');
             kickButton.addEventListener('click', () => {
                 socket.emit('kick user', { roomName: currentRoom, userId: user.id });
             });
-            userItem.appendChild(kickButton);
+            buttonContainer.appendChild(kickButton);
+
+            const banButton = document.createElement('button');
+            banButton.textContent = 'Bannen';
+            banButton.classList.add('btn', 'btn-secondary', 'btn-small');
+            banButton.addEventListener('click', () => {
+                socket.emit('ban user', { roomName: currentRoom, userId: user.id });
+            });
+            buttonContainer.appendChild(banButton);
+
+            userItem.appendChild(buttonContainer);
         }
         userList.appendChild(userItem);
     });
+
+    // Gebannte Nutzer (nur für den Ersteller sichtbar)
+    if (isOwner && roomData.bannedUsers && roomData.bannedUsers.length > 0) {
+        const bannedHeader = document.createElement('h4');
+        bannedHeader.textContent = 'Gebannte Nutzer';
+        userList.appendChild(bannedHeader);
+
+        roomData.bannedUsers.forEach(bannedId => {
+            const bannedItem = document.createElement('li');
+            bannedItem.classList.add('user-item', 'banned-user');
+
+            const bannedNameSpan = document.createElement('span');
+            bannedNameSpan.classList.add('user-name');
+            bannedNameSpan.textContent = `Gebannt (ID: ${bannedId.substring(0, 5)}...)`;
+            bannedItem.appendChild(bannedNameSpan);
+
+            const unbanButton = document.createElement('button');
+            unbanButton.textContent = 'Zulassen';
+            unbanButton.classList.add('btn', 'btn-success', 'btn-small');
+            unbanButton.addEventListener('click', () => {
+                socket.emit('unban user', { roomName: currentRoom, userId: bannedId });
+            });
+            bannedItem.appendChild(unbanButton);
+            userList.appendChild(bannedItem);
+        });
+    }
 });
 
 // Button-Funktionen
@@ -149,6 +218,14 @@ deleteButton.addEventListener('click', () => {
     if (isOwner && confirm('Möchtest du den Raum wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
         socket.emit('delete room', { roomName: currentRoom });
         window.location.reload();
+    }
+});
+
+changePasswordBtn.addEventListener('click', () => {
+    const newPassword = prompt('Gib das neue Passwort ein:');
+    if (newPassword && newPassword.trim() !== '') {
+        socket.emit('change password', { roomName: currentRoom, newPassword });
+        roomPasswordDisplay.textContent = `Passwort: ${newPassword}`;
     }
 });
 
