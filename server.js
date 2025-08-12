@@ -79,8 +79,8 @@ function getStats() {
 }
 
 io.on('connection', (socket) => {
-    const userAgent = socket.handshake.headers['user-agent'];
-    const clientInfo = useragent.parse(userAgent);
+    const userAgentHeader = socket.handshake.headers['user-agent'];
+    const clientInfo = useragent.parse(userAgentHeader);
 
     sessionStarts[socket.id] = Date.now();
 
@@ -147,13 +147,14 @@ io.on('connection', (socket) => {
             return;
         }
 
+        // Neue IP-Erkennung
         const userIp = socket.handshake.address;
 
-        // Geänderte Logik: Prüft, ob die Werte existieren, bevor sie zugewiesen werden
+        // Sicherstellen, dass die Daten verfügbar sind, bevor sie in das Nutzerobjekt geschrieben werden
         const newUserData = {
             id: socket.id,
             name: username,
-            ip: userIp,
+            ip: userIp || 'Unbekannt',
             device: clientInfo.device ? clientInfo.device.family : 'Unbekannt',
             browser: clientInfo.browser ? clientInfo.browser.name : 'Unbekannt'
         };
