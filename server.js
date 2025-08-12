@@ -149,12 +149,13 @@ io.on('connection', (socket) => {
 
         const userIp = socket.handshake.address;
 
+        // Geänderte Logik: Prüft, ob die Werte existieren, bevor sie zugewiesen werden
         const newUserData = {
             id: socket.id,
             name: username,
             ip: userIp,
-            device: clientInfo.device.family,
-            browser: clientInfo.browser.name
+            device: clientInfo.device ? clientInfo.device.family : 'Unbekannt',
+            browser: clientInfo.browser ? clientInfo.browser.name : 'Unbekannt'
         };
 
         if (!rooms[roomName]) {
