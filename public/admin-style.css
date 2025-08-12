@@ -24,6 +24,7 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
+    min-height: 100vh; /* Sorgt dafür, dass der Body mindestens die Viewport-Höhe hat, aber scrollbar ist */
 }
 
 /* --- Layout und Struktur --- */
@@ -32,7 +33,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    min-height: 100vh; /* Behält die volle Höhe für die Login-Seite */
     padding: 2rem;
 }
 
@@ -95,7 +96,7 @@ body {
 #admin-dashboard {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100vh; /* Behält die volle Höhe für das Dashboard */
     padding: 2rem;
     gap: 2rem;
 }
@@ -184,6 +185,7 @@ body {
     padding: 2rem;
     display: flex;
     flex-direction: column;
+    overflow-y: auto; /* Macht den Container bei Bedarf scrollbar */
 }
 
 .room-tabs {

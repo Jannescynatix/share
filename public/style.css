@@ -22,8 +22,7 @@
 }
 
 html, body {
-    height: 100%;
-    width: 100%;
+    /* `height: 100%;` und `width: 100%;` entfernt, damit die Seite bei Bedarf wachsen kann */
 }
 
 body {
@@ -31,10 +30,10 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
+    /* `display: flex; justify-content: center; align-items: center;` entfernt,
+       damit der Inhalt nicht zentriert wird und die Seite normal scrollbar ist */
+    /* `overflow: hidden;` entfernt, um Scrolling zu ermöglichen */
+    min-height: 100vh; /* Stellt sicher, dass die Seite mindestens die Viewport-Höhe hat */
 }
 
 /* --- Login-Seite --- */
@@ -46,6 +45,7 @@ body {
     box-shadow: 0 10px 30px var(--shadow-color);
     max-width: 500px;
     width: 90%;
+    margin: 50px auto; /* Zentriert die Login-Seite bei kleineren Bildschirmen */
 }
 
 #login-page h1 {
@@ -104,7 +104,7 @@ body {
 /* --- Haupt-Anwendung --- */
 #main-app {
     width: 100%;
-    height: 100%;
+    min-height: 100vh; /* `height: 100%;` durch `min-height: 100vh;` ersetzt */
     display: flex;
     flex-direction: column;
     background-color: var(--bg-color);
@@ -190,7 +190,7 @@ body {
     flex-grow: 1;
     display: flex;
     background: var(--bg-color);
-    overflow: hidden;
+    /* `overflow: hidden;` entfernt, damit bei Bedarf gescrollt werden kann */
 }
 
 .editor-panel {
@@ -229,8 +229,12 @@ body {
 }
 
 .chat-panel {
-    flex: 2;
+    /* `flex: 2;` entfernt, damit die Chat-Box nicht wächst */
     border-bottom: 1px solid var(--border-color);
+    max-height: 400px; /* Feste max-Höhe gesetzt */
+    overflow: hidden; /* Verhindert, dass der Inhalt überläuft, falls die `chat-messages` keine Scrollbar hat */
+    display: flex;
+    flex-direction: column;
 }
 
 .users-panel {
@@ -248,7 +252,7 @@ body {
 
 .chat-messages {
     flex-grow: 1;
-    overflow-y: auto;
+    overflow-y: auto; /* Aktiviert den internen Scrollbar für die Nachrichten */
     margin-bottom: 1rem;
     padding-right: 0.5rem;
     display: flex;
