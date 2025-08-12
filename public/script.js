@@ -6,7 +6,6 @@ let currentUsername = '';
 let isOwner = false;
 let mySocketId = '';
 
-// DOM-Elemente
 const loginPage = document.getElementById('login-page');
 const mainApp = document.getElementById('main-app');
 const usernameInput = document.getElementById('username-input');
@@ -26,28 +25,28 @@ const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendButton = document.getElementById('send-button');
 const userList = document.getElementById('user-list');
+const bannedUserList = document.getElementById('banned-user-list');
+const bannedUsersHeader = document.getElementById('banned-users-header');
+const mobileNavButtons = document.querySelectorAll('.mobile-nav .nav-btn');
+const editorPanel = document.getElementById('editor-panel');
+const chatPanel = document.getElementById('chat-panel');
+const usersPanel = document.getElementById('users-panel');
 
-// Tabs (nur für mobile Ansicht)
-const navButtons = document.querySelectorAll('.nav-btn');
-const panels = {
-    'editor-panel': document.querySelector('.editor-panel'),
-    'chat-panel': document.querySelector('.chat-panel'),
-    'users-panel': document.querySelector('.users-panel')
-};
+// Funktion, um die aktiven Panels zu steuern
+function activatePanel(panelId) {
+    [editorPanel, chatPanel, usersPanel].forEach(panel => {
+        panel.classList.remove('active');
+    });
+    document.getElementById(panelId).classList.add('active');
+}
 
-navButtons.forEach(button => {
+// Mobile-Navigation
+mobileNavButtons.forEach(button => {
     button.addEventListener('click', () => {
-        const target = button.dataset.target;
-
-        // Buttons
-        navButtons.forEach(btn => btn.classList.remove('active'));
+        const targetId = button.dataset.target;
+        mobileNavButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-
-        // Panels
-        for (const panel in panels) {
-            panels[panel].style.display = 'none';
-        }
-        panels[target].style.display = 'flex';
+        activatePanel(targetId);
     });
 });
 
@@ -64,8 +63,6 @@ const passwordFromUrl = urlParams.get('password');
 if (roomFromUrl) {
     roomInput.value = roomFromUrl;
     if (passwordFromUrl) {
-        // Hier müsste das Passwort entschlüsselt werden, was nur auf dem Server möglich ist.
-        // Der Client kann nur das verschlüsselte Passwort senden.
         passwordInput.value = passwordFromUrl;
     }
 }
@@ -147,6 +144,7 @@ socket.on('chat message', (data) => {
 // Nutzerliste-Logik
 socket.on('update room data', (roomData) => {
     userList.innerHTML = '';
+    bannedUserList.innerHTML = '';
     roomPasswordDisplay.textContent = `Passwort: ${roomData.password}`;
 
     // Aktuelle Nutzer
@@ -193,28 +191,27 @@ socket.on('update room data', (roomData) => {
 
     // Gebannte Nutzer (nur für den Ersteller sichtbar)
     if (isOwner && roomData.bannedUsers && roomData.bannedUsers.length > 0) {
-        const bannedHeader = document.createElement('h4');
-        bannedHeader.textContent = 'Gebannte Nutzer';
-        userList.appendChild(bannedHeader);
-
-        roomData.bannedUsers.forEach(bannedId => {
+        bannedUsersHeader.style.display = 'block';
+        roomData.bannedUsers.forEach(bannedName => {
             const bannedItem = document.createElement('li');
             bannedItem.classList.add('user-item', 'banned-user');
 
             const bannedNameSpan = document.createElement('span');
             bannedNameSpan.classList.add('user-name');
-            bannedNameSpan.textContent = `Gebannt (ID: ${bannedId.substring(0, 5)}...)`;
+            bannedNameSpan.textContent = `${bannedName} (gebannt)`;
             bannedItem.appendChild(bannedNameSpan);
 
             const unbanButton = document.createElement('button');
             unbanButton.textContent = 'Zulassen';
             unbanButton.classList.add('btn', 'btn-success', 'btn-small');
             unbanButton.addEventListener('click', () => {
-                socket.emit('unban user', { roomName: currentRoom, userId: bannedId });
+                socket.emit('unban user', { roomName: currentRoom, username: bannedName });
             });
             bannedItem.appendChild(unbanButton);
-            userList.appendChild(bannedItem);
+            bannedUserList.appendChild(bannedItem);
         });
+    } else {
+        bannedUsersHeader.style.display = 'none';
     }
 });
 
@@ -252,8 +249,6 @@ changePasswordBtn.addEventListener('click', () => {
 });
 
 shareLinkBtn.addEventListener('click', () => {
-    // Hier bräuchten wir eine Verschlüsselung für das Passwort, um es sicher in der URL zu teilen.
-    // Dieser Teil ist komplexer, aber für das Beispiel lassen wir es weg und teilen nur den Raumnamen.
     const url = `${window.location.origin}/?room=${currentRoom}`;
     navigator.clipboard.writeText(url).then(() => {
         alert('Der Raumnamen-Link wurde in die Zwischenablage kopiert. Teile den Link und das Passwort mit anderen!');

@@ -37,14 +37,13 @@
     </header>
 
     <main class="app-main">
-        <div class="editor-panel">
-            <div class="mobile-header">Texteditor</div>
+        <div id="editor-panel" class="editor-panel">
             <textarea id="text-editor" placeholder="Beginne hier zu schreiben..."></textarea>
         </div>
 
         <div class="sidebar">
-            <div class="mobile-header chat-header">Live-Chat</div>
-            <div class="chat-panel">
+            <div id="chat-panel" class="chat-panel">
+                <div class="mobile-header">Live-Chat</div>
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" placeholder="Nachricht senden...">
@@ -52,9 +51,11 @@
                 </div>
             </div>
 
-            <div class="mobile-header users-header">Nutzer im Raum</div>
-            <div class="users-panel">
+            <div id="users-panel" class="users-panel">
+                <div class="mobile-header">Nutzer im Raum</div>
                 <ul id="user-list" class="user-list"></ul>
+                <h4 id="banned-users-header" style="display:none;">Gebannte Nutzer</h4>
+                <ul id="banned-user-list" class="user-list"></ul>
             </div>
         </div>
     </main>

@@ -18,6 +18,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Entschlüsselungsfunktion
 function decrypt(text, key) {
+    if (!text || !key) {
+        return null;
+    }
     const decipher = crypto.createDecipher('aes-256-cbc', key);
     let dec = decipher.update(text, 'hex', 'utf8');
     dec += decipher.final('utf8');
@@ -28,7 +31,7 @@ io.on('connection', (socket) => {
     console.log(`Ein Benutzer hat sich verbunden: ${socket.id}`);
 
     socket.on('join room', ({ roomName, password, username }) => {
-        // Entschlüssele das Passwort, das aus der URL kommen könnte
+        // Entschlüssele das Passwort
         let decryptedPassword = password;
         if (password && process.env.ENCRYPTION_KEY) {
             try {
@@ -40,7 +43,8 @@ io.on('connection', (socket) => {
             }
         }
 
-        if (rooms[roomName] && rooms[roomName].bannedUsers && rooms[roomName].bannedUsers.includes(socket.id)) {
+        // Prüfe, ob der Benutzername gebannt ist
+        if (rooms[roomName] && rooms[roomName].bannedUsers && rooms[roomName].bannedUsers.includes(username)) {
             socket.emit('login failed', 'Du wurdest dauerhaft aus diesem Raum gebannt.');
             return;
         }
@@ -55,11 +59,14 @@ io.on('connection', (socket) => {
             };
             console.log(`Neuer Raum '${roomName}' erstellt von ${username}.`);
             socket.join(roomName);
-            socket.emit('login successful', { room: rooms[roomName], socketId: socket.id });
+            socket.emit('login successful', { room: rooms[roomName], socketId: socket.id, username: username });
         } else if (rooms[roomName].password === decryptedPassword) {
-            rooms[roomName].users.push({ id: socket.id, name: username });
+            // Prüfe, ob der Benutzer bereits im Raum ist (vermeide Duplikate)
+            if (!rooms[roomName].users.find(u => u.name === username)) {
+                rooms[roomName].users.push({ id: socket.id, name: username });
+            }
             socket.join(roomName);
-            socket.emit('login successful', { room: rooms[roomName], socketId: socket.id });
+            socket.emit('login successful', { room: rooms[roomName], socketId: socket.id, username: username });
             console.log(`Benutzer '${username}' ist Raum '${roomName}' beigetreten.`);
         } else {
             socket.emit('login failed', 'Falsches Passwort.');
@@ -114,7 +121,7 @@ io.on('connection', (socket) => {
         if (rooms[roomName] && rooms[roomName].owner === socket.id) {
             const userToBan = rooms[roomName].users.find(u => u.id === userId);
             if (userToBan && userToBan.id !== rooms[roomName].owner) {
-                rooms[roomName].bannedUsers.push(userId);
+                rooms[roomName].bannedUsers.push(userToBan.name); // Banne den Namen des Nutzers
                 const clientSocket = io.sockets.sockets.get(userId);
                 if (clientSocket) {
                     clientSocket.leave(roomName);
@@ -127,11 +134,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('unban user', ({ roomName, userId }) => {
+    socket.on('unban user', ({ roomName, username }) => {
         if (rooms[roomName] && rooms[roomName].owner === socket.id) {
-            rooms[roomName].bannedUsers = rooms[roomName].bannedUsers.filter(id => id !== userId);
+            rooms[roomName].bannedUsers = rooms[roomName].bannedUsers.filter(name => name !== username);
             io.to(roomName).emit('update room data', rooms[roomName]);
-            io.to(roomName).emit('chat message', { sender: 'System', text: `Ein Nutzer wurde entbannt.` });
+            io.to(roomName).emit('chat message', { sender: 'System', text: `Benutzer "${username}" wurde entbannt.` });
         }
     });
 
