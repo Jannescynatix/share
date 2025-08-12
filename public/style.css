@@ -377,3 +377,62 @@ body {
         border-bottom: none;
     }
 }
+/* ... (vorheriger Code bleibt gleich) */
+
+/* NEU: Styles für die Seitenverwaltung */
+.page-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-bg-color);
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.page-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.page-tab {
+    padding: 0.5rem 1rem;
+    background-color: #3e3e3e;
+    color: #aaa;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-tab:hover {
+    background-color: #5a5a5a;
+}
+
+.page-tab.active {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    font-weight: 600;
+}
+
+.delete-page-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity var(--transition-speed);
+}
+
+.delete-page-btn:hover {
+    opacity: 1;
+}
+
+/* ... (restlicher Code bleibt gleich) */
