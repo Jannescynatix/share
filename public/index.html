@@ -1,77 +1,136 @@
 <!DOCTYPE html>
+
 <html lang="de">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Live-Editor-Räume</title>
+
     <link rel="stylesheet" href="style.css">
+
 </head>
+
 <body>
 
 <div id="login-page">
+
     <h1>Willkommen zum Live-Editor</h1>
+
     <p>Bitte gib deinen Namen, den Raumnamen und das Passwort ein.</p>
+
     <div class="input-group">
+
         <input type="text" id="username-input" placeholder="Dein Name" required>
+
         <input type="text" id="room-input" placeholder="Raumname" required>
+
         <input type="password" id="password-input" placeholder="Passwort" required>
+
     </div>
+
     <button id="join-button">Beitreten oder Erstellen</button>
+
     <p id="error-message"></p>
+
 </div>
+
 
 <div id="main-app" style="display:none;">
+
     <header class="app-header">
+
         <div class="header-left">
+
             <h1 id="room-title"></h1>
+
             <div class="password-container">
+
                 <span id="room-password-display" class="password-display"></span>
+
                 <button id="change-password-btn" class="btn btn-secondary btn-small" style="display:none;">Passwort ändern</button>
+
                 <button id="share-link-btn" class="btn btn-primary btn-small">Link teilen</button>
+
             </div>
+
         </div>
+
         <div class="header-right">
+
             <button id="download-button" class="btn btn-primary">Download</button>
+
             <button id="leave-button" class="btn btn-secondary">Verlassen</button>
+
             <button id="delete-button" class="btn btn-danger" style="display:none;">Raum löschen</button>
+
         </div>
+
     </header>
 
+
     <main class="app-main">
+
         <div class="app-panel editor-panel">
-            <div id="page-controls" class="page-controls">
-                <div id="page-tabs" class="page-tabs">
-                </div>
-                <button id="add-page-button" class="btn btn-secondary btn-small">➕ Neue Seite</button>
-            </div>
+
             <textarea id="text-editor" placeholder="Beginne hier zu schreiben..."></textarea>
+
         </div>
+
 
         <div class="sidebar">
+
             <div class="app-panel chat-panel">
+
                 <div class="panel-header">Live-Chat</div>
+
                 <div id="chat-messages" class="chat-messages"></div>
+
                 <div class="chat-input-container">
+
                     <input type="text" id="chat-input" placeholder="Nachricht senden...">
+
                     <button id="send-button" class="btn btn-primary">Senden</button>
+
                 </div>
+
             </div>
+
 
             <div class="app-panel users-panel">
+
                 <div class="panel-header">Nutzer im Raum</div>
+
                 <div id="user-list-container" class="list-container">
+
                     <ul id="user-list" class="user-list"></ul>
+
                 </div>
+
                 <h4 id="banned-users-header" style="display:none;">Gebannte Nutzer</h4>
+
                 <div id="banned-user-list-container" class="list-container">
+
                     <ul id="banned-user-list" class="user-list"></ul>
+
                 </div>
+
             </div>
+
         </div>
+
     </main>
+
 </div>
 
+
 <script src="/socket.io/socket.io.js"></script>
+
 <script src="script.js"></script>
+
 </body>
+
 </html>
