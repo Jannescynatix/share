@@ -9,8 +9,9 @@
 <body>
 <div id="login-page">
     <h1>Willkommen zum Live-Editor</h1>
-    <p>Bitte gib den Namen des Raums und das Passwort ein.</p>
+    <p>Bitte gib deinen Namen, den Raumnamen und das Passwort ein.</p>
     <div class="input-group">
+        <input type="text" id="username-input" placeholder="Dein Name" required>
         <input type="text" id="room-input" placeholder="Raumname" required>
         <input type="password" id="password-input" placeholder="Passwort" required>
     </div>
@@ -18,26 +19,40 @@
     <p id="error-message"></p>
 </div>
 
-<div id="editor-page" style="display:none;">
-    <div class="header">
-        <h1 id="room-title"></h1>
-        <button id="download-button">Text herunterladen</button>
-    </div>
+<div id="main-app" style="display:none;">
+    <header class="app-header">
+        <div class="header-left">
+            <h1 id="room-title"></h1>
+            <span id="room-password-display" class="password-display"></span>
+        </div>
+        <div class="header-right">
+            <button id="download-button" class="btn btn-primary">Download</button>
+            <button id="leave-button" class="btn btn-secondary">Verlassen</button>
+            <button id="delete-button" class="btn btn-danger" style="display:none;">Raum löschen</button>
+        </div>
+    </header>
 
-    <div class="main-content">
-        <div class="editor-panel">
-            <textarea id="text-editor"></textarea>
+    <main class="app-main">
+        <div class="editor-section">
+            <textarea id="text-editor" placeholder="Beginne hier zu schreiben..."></textarea>
         </div>
 
-        <div class="chat-panel">
-            <h3>Live-Chat</h3>
-            <div id="chat-messages"></div>
-            <div class="chat-input-group">
-                <input type="text" id="chat-input" placeholder="Nachricht senden..." required>
-                <button id="send-button">Senden</button>
+        <div class="sidebar">
+            <div class="chat-panel">
+                <h3>Live-Chat</h3>
+                <div id="chat-messages" class="chat-messages"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Nachricht senden...">
+                    <button id="send-button" class="btn btn-primary">Senden</button>
+                </div>
+            </div>
+
+            <div class="users-panel">
+                <h3>Nutzer im Raum</h3>
+                <ul id="user-list" class="user-list"></ul>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
