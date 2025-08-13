@@ -22,24 +22,31 @@ const rooms = {};
 const adminAuth = new Map(); // Speichert, welche Socket-IDs als Admin authentifiziert sind
 let HASHED_ADMIN_PASSWORD;
 
-// --- Helferfunktionen für die Verschlüsselung (korrigiert) ---
+// --- Helferfunktionen für die Verschlüsselung ---
 const ALGORITHM = 'aes-256-cbc';
 const IV_LENGTH = 16;
 const KEY_LENGTH = 32;
 
 const encrypt = (text, key) => {
-    const derivedKey = crypto.scryptSync(key, 'salt', KEY_LENGTH);
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return `${iv.toString('hex')}:${encrypted}`;
+    if (!key) return text;
+    try {
+        const derivedKey = crypto.scryptSync(key, 'salt', KEY_LENGTH);
+        const iv = crypto.randomBytes(IV_LENGTH);
+        const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        return `${iv.toString('hex')}:${encrypted}`;
+    } catch (e) {
+        console.error("Fehler beim Verschlüsseln des Passworts:", e);
+        return text;
+    }
 };
 
 const decrypt = (text, key) => {
+    if (!key || !text || !text.includes(':')) return text;
     try {
         const [ivHex, encryptedText] = text.split(':');
-        if (!ivHex || !encryptedText) return null;
+        if (!ivHex || !encryptedText) return text;
         const derivedKey = crypto.scryptSync(key, 'salt', KEY_LENGTH);
         const iv = Buffer.from(ivHex, 'hex');
         const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
@@ -48,7 +55,7 @@ const decrypt = (text, key) => {
         return decrypted;
     } catch (e) {
         console.error("Fehler beim Entschlüsseln des Passworts:", e);
-        return null;
+        return text;
     }
 };
 
@@ -155,16 +162,12 @@ io.on('connection', (socket) => {
         let roomPassword = password;
         if (ENCRYPTION_KEY) {
             roomPassword = decrypt(password, ENCRYPTION_KEY);
-            if (!roomPassword) {
-                socket.emit('login failed', 'Fehler bei der Passworteingabe.');
-                return;
-            }
         }
 
         if (!rooms[roomName]) {
             rooms[roomName] = {
                 roomName,
-                password: roomPassword,
+                password: encrypt(roomPassword, ENCRYPTION_KEY),
                 owner: socket.id,
                 users: [],
                 text: '',
@@ -173,7 +176,7 @@ io.on('connection', (socket) => {
                 lastActivity: Date.now()
             };
         }
-        if (rooms[roomName].password !== roomPassword) {
+        if (decrypt(rooms[roomName].password, ENCRYPTION_KEY) !== roomPassword) {
             socket.emit('login failed', 'Falsches Passwort.');
             return;
         }
