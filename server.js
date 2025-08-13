@@ -12,16 +12,10 @@ const io = socketIo(server);
 
 // --- Konfiguration ---
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mowwus';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'deinSicheresPasswort';
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const MESSAGE_LIMIT = 500; // Maximale Anzahl von Chat-Nachrichten pro Raum
 const ROOM_INACTIVITY_TIMEOUT = 1000 * 60 * 60; // 1 Stunde Inaktivität
-
-// --- Brute-Force-Schutz Konfiguration ---
-const MAX_LOGIN_ATTEMPTS_PER_SECOND = 2;
-const GLOBAL_LOCKOUT_DURATION = 1000 * 60; // 1 Minute
-let failedLoginAttempts = [];
-let isGloballyLockedOut = false;
 
 // --- Globale Variablen ---
 const rooms = {};
@@ -124,52 +118,21 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// --- Brute-Force-Schutz-Logik ---
-const checkBruteForce = (callback) => {
-    // Filtere alle fehlgeschlagenen Versuche, die älter als 1 Sekunde sind
-    const now = Date.now();
-    failedLoginAttempts = failedLoginAttempts.filter(timestamp => now - timestamp < 1000);
-
-    // Wenn zu viele Versuche in der letzten Sekunde stattfanden
-    if (failedLoginAttempts.length > MAX_LOGIN_ATTEMPTS_PER_SECOND) {
-        if (!isGloballyLockedOut) {
-            isGloballyLockedOut = true;
-            console.warn('Brute-Force-Angriff erkannt! Server gesperrt.');
-            setTimeout(() => {
-                isGloballyLockedOut = false;
-                failedLoginAttempts = [];
-                console.log('Globale Sperre aufgehoben.');
-            }, GLOBAL_LOCKOUT_DURATION);
-        }
-        callback(true);
-    } else {
-        callback(false);
-    }
-};
-
 // --- Socket.io-Verbindung ---
 io.on('connection', (socket) => {
     console.log('Neuer Benutzer verbunden:', socket.id);
 
     // --- Admin-Funktionen ---
     socket.on('admin:login', async (password) => {
-        checkBruteForce((isLockedOut) => {
-            if (isLockedOut) {
-                socket.emit('login failed', `System wurde vermutlich angegriffen. Bitte versuche es in etwa ${GLOBAL_LOCKOUT_DURATION / 1000} Sekunden erneut.`);
-                return;
-            }
-
-            const isMatch = bcrypt.compare(password, HASHED_ADMIN_PASSWORD);
-            if (isMatch) {
-                adminAuth.set(socket.id, true);
-                socket.join('admin-room');
-                socket.emit('admin:authenticated', { rooms: getRoomsForAdmin(), stats: getStats() });
-                console.log(`Admin ${socket.id} hat sich angemeldet.`);
-            } else {
-                failedLoginAttempts.push(Date.now());
-                socket.emit('admin:auth-failed');
-            }
-        });
+        const isMatch = await bcrypt.compare(password, HASHED_ADMIN_PASSWORD);
+        if (isMatch) {
+            adminAuth.set(socket.id, true);
+            socket.join('admin-room');
+            socket.emit('admin:authenticated', { rooms: getRoomsForAdmin(), stats: getStats() });
+            console.log(`Admin ${socket.id} hat sich angemeldet.`);
+        } else {
+            socket.emit('admin:auth-failed');
+        }
     });
 
     socket.on('admin:delete-room', (roomName) => {
@@ -206,58 +169,49 @@ io.on('connection', (socket) => {
 
     // --- Benutzer-Funktionen ---
     socket.on('join room', ({ roomName, password, username }) => {
-        checkBruteForce((isLockedOut) => {
-            if (isLockedOut) {
-                socket.emit('login failed', `System wurde vermutlich angegriffen. Bitte versuche es in etwa ${GLOBAL_LOCKOUT_DURATION / 1000} Sekunden erneut.`);
-                return;
-            }
+        let roomPassword = password;
+        if (ENCRYPTION_KEY) {
+            roomPassword = decrypt(password, ENCRYPTION_KEY);
+        }
 
-            let roomPassword = password;
-            if (ENCRYPTION_KEY) {
-                roomPassword = decrypt(password, ENCRYPTION_KEY);
-            }
-
-            if (!rooms[roomName]) {
-                rooms[roomName] = {
-                    roomName,
-                    password: encrypt(roomPassword, ENCRYPTION_KEY),
-                    owner: socket.id,
-                    users: [],
-                    text: '',
-                    chatMessages: [],
-                    bannedUsers: [],
-                    lastActivity: Date.now()
-                };
-            }
-
-            if (decrypt(rooms[roomName].password, ENCRYPTION_KEY) !== roomPassword) {
-                failedLoginAttempts.push(Date.now());
-                socket.emit('login failed', 'Falsches Passwort.');
-                return;
-            }
-            if (rooms[roomName].bannedUsers.includes(username)) {
-                socket.emit('login failed', 'Du wurdest aus diesem Raum gebannt.');
-                return;
-            }
-
-            socket.join(roomName);
-            const userDetails = {
-                id: socket.id,
-                name: username,
-                ip: socket.handshake.address,
-                browser: socket.request.headers['user-agent'],
-                joinTime: Date.now()
+        if (!rooms[roomName]) {
+            rooms[roomName] = {
+                roomName,
+                password: encrypt(roomPassword, ENCRYPTION_KEY),
+                owner: socket.id,
+                users: [],
+                text: '',
+                chatMessages: [],
+                bannedUsers: [],
+                lastActivity: Date.now()
             };
-            rooms[roomName].users.push(userDetails);
-            rooms[roomName].lastActivity = Date.now();
-            const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
-            socket.emit('login successful', { room: roomDataToSend, socketId: socket.id });
-            socket.emit('update text', rooms[roomName].text);
-            socket.emit('load messages', rooms[roomName].chatMessages);
-            io.to(roomName).emit('update room data', roomDataToSend);
-            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
-            console.log(`Benutzer ${username} ist dem Raum ${roomName} beigetreten.`);
-        });
+        }
+        if (decrypt(rooms[roomName].password, ENCRYPTION_KEY) !== roomPassword) {
+            socket.emit('login failed', 'Falsches Passwort.');
+            return;
+        }
+        if (rooms[roomName].bannedUsers.includes(username)) {
+            socket.emit('login failed', 'Du wurdest aus diesem Raum gebannt.');
+            return;
+        }
+
+        socket.join(roomName);
+        const userDetails = {
+            id: socket.id,
+            name: username,
+            ip: socket.handshake.address,
+            browser: socket.request.headers['user-agent'],
+            joinTime: Date.now()
+        };
+        rooms[roomName].users.push(userDetails);
+        rooms[roomName].lastActivity = Date.now();
+        const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+        socket.emit('login successful', { room: roomDataToSend, socketId: socket.id });
+        socket.emit('update text', rooms[roomName].text);
+        socket.emit('load messages', rooms[roomName].chatMessages);
+        io.to(roomName).emit('update room data', roomDataToSend);
+        io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
+        console.log(`Benutzer ${username} ist dem Raum ${roomName} beigetreten.`);
     });
 
     socket.on('text changed', ({ roomName, newText }) => {
