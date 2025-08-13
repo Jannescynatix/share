@@ -22,13 +22,30 @@ const rooms = {};
 const adminAuth = new Map(); // Speichert, welche Socket-IDs als Admin authentifiziert sind
 let HASHED_ADMIN_PASSWORD;
 
-// --- Helferfunktionen ---
+// --- Helferfunktionen für die Verschlüsselung (korrigiert) ---
+const ALGORITHM = 'aes-256-cbc';
+const IV_LENGTH = 16;
+const KEY_LENGTH = 32;
+
+const encrypt = (text, key) => {
+    const derivedKey = crypto.scryptSync(key, 'salt', KEY_LENGTH);
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return `${iv.toString('hex')}:${encrypted}`;
+};
+
 const decrypt = (text, key) => {
     try {
-        const decipher = crypto.createDecipher('aes-256-ctr', key);
-        let dec = decipher.update(text, 'hex', 'utf8');
-        dec += decipher.final('utf8');
-        return dec;
+        const [ivHex, encryptedText] = text.split(':');
+        if (!ivHex || !encryptedText) return null;
+        const derivedKey = crypto.scryptSync(key, 'salt', KEY_LENGTH);
+        const iv = Buffer.from(ivHex, 'hex');
+        const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
+        let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
     } catch (e) {
         console.error("Fehler beim Entschlüsseln des Passworts:", e);
         return null;
@@ -137,9 +154,8 @@ io.on('connection', (socket) => {
     socket.on('join room', ({ roomName, password, username }) => {
         let roomPassword = password;
         if (ENCRYPTION_KEY) {
-            try {
-                roomPassword = decrypt(password, ENCRYPTION_KEY);
-            } catch (e) {
+            roomPassword = decrypt(password, ENCRYPTION_KEY);
+            if (!roomPassword) {
                 socket.emit('login failed', 'Fehler bei der Passworteingabe.');
                 return;
             }
@@ -279,7 +295,11 @@ io.on('connection', (socket) => {
 
     socket.on('change password', ({ roomName, newPassword }) => {
         if (rooms[roomName] && rooms[roomName].owner === socket.id) {
-            rooms[roomName].password = newPassword;
+            let passwordToSave = newPassword;
+            if (ENCRYPTION_KEY) {
+                passwordToSave = encrypt(newPassword, ENCRYPTION_KEY);
+            }
+            rooms[roomName].password = passwordToSave;
             io.to(roomName).emit('update room data', rooms[roomName]);
         }
     });
