@@ -89,6 +89,15 @@ const deleteInactiveRooms = () => {
     }
 };
 
+const getRoomsForAdmin = () => {
+    const roomsWithDecryptedPasswords = Object.values(rooms).map(room => {
+        const roomCopy = { ...room };
+        roomCopy.password = decrypt(roomCopy.password, ENCRYPTION_KEY);
+        return roomCopy;
+    });
+    return roomsWithDecryptedPasswords;
+};
+
 // --- Initialisierung ---
 // Hash des Admin-Passworts beim Serverstart
 bcrypt.hash(ADMIN_PASSWORD, 10, (err, hash) => {
@@ -119,7 +128,7 @@ io.on('connection', (socket) => {
         if (isMatch) {
             adminAuth.set(socket.id, true);
             socket.join('admin-room');
-            socket.emit('admin:authenticated', { rooms: Object.values(rooms), stats: getStats() });
+            socket.emit('admin:authenticated', { rooms: getRoomsForAdmin(), stats: getStats() });
             console.log(`Admin ${socket.id} hat sich angemeldet.`);
         } else {
             socket.emit('admin:auth-failed');
@@ -131,7 +140,7 @@ io.on('connection', (socket) => {
             console.log(`Admin ${socket.id} löscht Raum: ${roomName}`);
             io.to(roomName).emit('room deleted', 'Dieser Raum wurde vom Administrator gelöscht.');
             delete rooms[roomName];
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
     });
 
@@ -143,8 +152,9 @@ io.on('connection', (socket) => {
                 userSocket.emit('kicked', 'Du wurdest vom Administrator gekickt.');
                 userSocket.leave(roomName);
                 rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== userId);
-                io.to(roomName).emit('update room data', rooms[roomName]);
-                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+                const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+                io.to(roomName).emit('update room data', roomDataToSend);
+                io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
             }
         }
     });
@@ -153,7 +163,7 @@ io.on('connection', (socket) => {
         if (adminAuth.has(socket.id) && rooms[roomName]) {
             rooms[roomName].chatMessages = rooms[roomName].chatMessages.filter(msg => msg.id !== messageId);
             io.to(roomName).emit('message deleted', messageId);
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
     });
 
@@ -195,11 +205,12 @@ io.on('connection', (socket) => {
         };
         rooms[roomName].users.push(userDetails);
         rooms[roomName].lastActivity = Date.now();
-        socket.emit('login successful', { room: rooms[roomName], socketId: socket.id });
+        const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+        socket.emit('login successful', { room: roomDataToSend, socketId: socket.id });
         socket.emit('update text', rooms[roomName].text);
         socket.emit('load messages', rooms[roomName].chatMessages);
-        io.to(roomName).emit('update room data', rooms[roomName]);
-        io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+        io.to(roomName).emit('update room data', roomDataToSend);
+        io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         console.log(`Benutzer ${username} ist dem Raum ${roomName} beigetreten.`);
     });
 
@@ -235,7 +246,7 @@ io.on('connection', (socket) => {
                     rooms[roomName].chatMessages.shift();
                 }
                 io.to(roomName).emit('new message', messageData);
-                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+                io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
             }
             rooms[roomName].lastActivity = Date.now();
         }
@@ -245,7 +256,7 @@ io.on('connection', (socket) => {
         if (rooms[roomName] && (rooms[roomName].owner === socket.id || rooms[roomName].chatMessages.some(msg => msg.id === messageId && msg.senderId === socket.id))) {
             rooms[roomName].chatMessages = rooms[roomName].chatMessages.filter(msg => msg.id !== messageId);
             io.to(roomName).emit('message deleted', messageId);
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
     });
 
@@ -253,8 +264,9 @@ io.on('connection', (socket) => {
         if (rooms[roomName]) {
             socket.leave(roomName);
             rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== socket.id);
-            io.to(roomName).emit('update room data', rooms[roomName]);
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+            io.to(roomName).emit('update room data', roomDataToSend);
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
     });
 
@@ -265,8 +277,9 @@ io.on('connection', (socket) => {
                 userSocket.emit('kicked', 'Du wurdest vom Raumersteller gekickt.');
                 userSocket.leave(roomName);
                 rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== userId);
-                io.to(roomName).emit('update room data', rooms[roomName]);
-                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+                const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+                io.to(roomName).emit('update room data', roomDataToSend);
+                io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
             }
         }
     });
@@ -282,8 +295,9 @@ io.on('connection', (socket) => {
                     userSocket.leave(roomName);
                 }
                 rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== userId);
-                io.to(roomName).emit('update room data', rooms[roomName]);
-                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+                const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+                io.to(roomName).emit('update room data', roomDataToSend);
+                io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
             }
         }
     });
@@ -291,8 +305,9 @@ io.on('connection', (socket) => {
     socket.on('unban user', ({ roomName, username }) => {
         if (rooms[roomName] && rooms[roomName].owner === socket.id) {
             rooms[roomName].bannedUsers = rooms[roomName].bannedUsers.filter(name => name !== username);
-            io.to(roomName).emit('update room data', rooms[roomName]);
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+            io.to(roomName).emit('update room data', roomDataToSend);
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
     });
 
@@ -303,7 +318,8 @@ io.on('connection', (socket) => {
                 passwordToSave = encrypt(newPassword, ENCRYPTION_KEY);
             }
             rooms[roomName].password = passwordToSave;
-            io.to(roomName).emit('update room data', rooms[roomName]);
+            const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+            io.to(roomName).emit('update room data', roomDataToSend);
         }
     });
 
@@ -311,7 +327,7 @@ io.on('connection', (socket) => {
         if (rooms[roomName] && rooms[roomName].owner === socket.id) {
             io.to(roomName).emit('room deleted', 'Der Raumersteller hat diesen Raum gelöscht.');
             delete rooms[roomName];
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
     });
 
@@ -319,15 +335,16 @@ io.on('connection', (socket) => {
         console.log('Benutzer getrennt:', socket.id);
         if (adminAuth.has(socket.id)) {
             adminAuth.delete(socket.id);
-            io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+            io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
         }
         for (const roomName in rooms) {
             const initialUserCount = rooms[roomName].users.length;
             rooms[roomName].users = rooms[roomName].users.filter(user => user.id !== socket.id);
             if (rooms[roomName].users.length < initialUserCount) {
                 rooms[roomName].lastActivity = Date.now();
-                io.to(roomName).emit('update room data', rooms[roomName]);
-                io.to('admin-room').emit('admin:update-rooms', { rooms: Object.values(rooms), stats: getStats() });
+                const roomDataToSend = { ...rooms[roomName], password: decrypt(rooms[roomName].password, ENCRYPTION_KEY) };
+                io.to(roomName).emit('update room data', roomDataToSend);
+                io.to('admin-room').emit('admin:update-rooms', { rooms: getRoomsForAdmin(), stats: getStats() });
                 break;
             }
         }
